@@ -34,17 +34,17 @@
 ;; (use-package czm-tex-fold
 ;;     :after latex
 ;;     :bind
-;;     (:map LaTeX-mode-map
+;;     (:map TeX-fold-mode-map
 ;; 	  ("C-c C-o C-s" . czm-tex-fold-fold-section)
 ;; 	  ("C-c C-o s" . czm-tex-fold-clearout-section))
 ;;     :config
-;;     (czm/tex-fold-setup)
+;;     (czm-tex-fold-setup)
 ;;     :custom
 ;;     (czm-tex-fold-bib-file . "~/doit/refs.bib"))
 ;;
-;; Replace "~/doit/refs.bib" with a bib file containing the references
-;; you want fold.  To customize the fold display, replace
-;; `czm/tex-fold-setup' in the above config with your own function.
+;; Replace "~/doit/refs.bib" with your favorite bib file.  To
+;; customize the fold display, replace `czm-tex-fold-setup' in the
+;; above config with your own function.
 
 
 ;;; Code:
