@@ -3,9 +3,9 @@
 ;; Copyright (C) 2023  Paul D. Nelson
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
-;; Version: 1.0
+;; Version: 0.1
 ;; URL: https://github.com/ultronozm/czm-tex-fold.el
-;; Package-Requires: ((emacs "29.1") (czm-tex-util "1.0"))
+;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.1"))
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -471,7 +471,6 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
     (let ((start (point))
 	  (end (mark)))
       (TeX-fold-clearout-region start end))))
-
 
 
 (provide 'czm-tex-fold)
