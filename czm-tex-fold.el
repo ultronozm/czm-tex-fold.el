@@ -32,7 +32,10 @@
 ;; My use-package declaration:
 ;; 
 ;; (use-package czm-tex-fold
-;;     :after latex
+;;     :after tex-fold
+;;     :vc (:url "https://github.com/ultronozm/czm-tex-fold.el.git"
+;;               :rev :newest)
+;;     :demand
 ;;     :bind
 ;;     (:map TeX-fold-mode-map
 ;; 	  ("C-c C-o C-s" . czm-tex-fold-fold-section)
@@ -40,7 +43,9 @@
 ;;     :config
 ;;     (czm-tex-fold-setup)
 ;;     :custom
-;;     (czm-tex-fold-bib-file . "~/doit/refs.bib"))
+;;     (czm-tex-fold-bib-file . "~/doit/refs.bib")
+;;     :hook
+;;     (LaTeX-mode . tex-fold-mode))
 ;;
 ;; Replace "~/doit/refs.bib" with your favorite bib file.  To
 ;; customize the fold display, replace `czm-tex-fold-setup' in the
