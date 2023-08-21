@@ -23,47 +23,65 @@
 
 ;;; Commentary:
 
-;; This package provides a minor mode, `czm-tex-fold-mode', that wraps
-;; AUCTeX's `tex-fold-mode' and provides additional folding
-;; functionality.  The additional functionality includes improved
+;; This package extends AUCTeX's `TeX-fold-mode' to give improved
 ;; folding of \begin{...} and \end{...} declarations, references,
-;; citations, and sections.  When possible, the fold display
-;; incorporates label numbers extracted from the accompanying .aux
-;; file.
-;; 
-;; Let's start with \begin{...} and \end{...}.  `tex-fold-mode' folds
-;; these simply as [begin] and [end], respectively.  This package
-
-
-;; The new features include improved
-;; folding of \begin{...} and \end{...} declarations, references,
-;; citations, and sections.  When possible, the fold display
-;; incorporates label numbers extracted from the accompanying .aux
-;; file.
+;; citations, and sections.  The basic idea is illustrated as follows:
 ;;
-;; The package
-;;
-;; My use-package declaration:
+;; - \begin{theorem} is folded as "Theorem."
 ;; 
+;; - \begin{theorem}[Foo] is folded as "Theorem (Foo)."
+;; 
+;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
+;; this case) drawn from the accompanying .aux file.
+;;
+;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]." 
+;;
+;; - \end{theorem} is folded as "◼".
+;;
+;; - \end{proof} is folded as "□".
+;;
+;; - \ref{thm:foo} and \eqref{eq:bar} are folded as "[1]".
+;;
+;; - \cite[Section 1]{foo} is folded as "[NC84, Section 1]", using
+;; last name initials and 2-digit years.  The citation keys are
+;; extracted from the bib file specified by the customization variable
+;; `czm-tex-fold-bib-file' (rather than from the file being visited --
+;; indeed, this package works fine in non-file buffers).
+;;
+;; To use this package, run the command `czm-tex-fold-setup' and then
+;; use `TeX-fold-mode' as usual (restarting it if it was started after
+;; running the command).
+;;
+;; The package includes a couple miscellaneous features that I have
+;; found useful in connection with `TeX-fold-mode'.
+;;
+;; - Folding for dashes and quotes, activated via the command
+;; `czm-tex-fold-misc-install'.
+;;
+;; - Section folding commands `czm-tex-fold-fold-section' and
+;; `czm-tex-fold-clearout-section'.
+;; 
+;; My use-package declaration (but make sure to load AUCTeX first):
+;;
 ;; (use-package czm-tex-fold
-;;     :after tex-fold
-;;     :vc (:url "https://github.com/ultronozm/czm-tex-fold.el.git"
-;;               :rev :newest)
-;;     :demand
-;;     :bind
-;;     (:map TeX-fold-mode-map
-;; 	  ("C-c C-o C-s" . czm-tex-fold-fold-section)
-;; 	  ("C-c C-o s" . czm-tex-fold-clearout-section))
-;;     :config
-;;     (czm-tex-fold-setup)
-;;     :custom
-;;     (czm-tex-fold-bib-file . "~/doit/refs.bib")
-;;     :hook
-;;     (LaTeX-mode . czm-tex-fold-mode))
+;;   :vc (:url "https://github.com/ultronozm/czm-tex-fold.el.git"
+;;             :rev :newest)
+;;   :demand
+;;   :bind
+;;   (:map TeX-fold-mode-map
+;;         ("C-c C-o C-s" . czm-tex-fold-fold-section)
+;;         ("C-c C-o s" . czm-tex-fold-clearout-section))
+;;   :config
+;;   (czm-tex-fold-set-defaults)
+;;   (czm-tex-fold-misc-install)
+;;   :custom
+;;   (czm-tex-fold-bib-file "~/doit/refs.bib")
+;;   :hook
+;;   (LaTeX-mode . tex-fold-mode))
 ;;
 ;; Replace "~/doit/refs.bib" with your favorite bib file.  To
-;; customize the fold display, replace `czm-tex-fold-setup' in the
-;; above config with your own function.
+;; customize the fold display, replace `czm-tex-fold-set-defaults'
+;; with your own version of that function.
 
 
 ;;; Code:
