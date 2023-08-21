@@ -23,11 +23,25 @@
 
 ;;; Commentary:
 
-;; This package extends tex-fold.el by overriding
-;; `TeX-fold-hide-item'.  The new features include improved folding of
-;; \begin{...} and \end{...} declarations, references, citations, and
-;; sections.  When possible, the fold display incorporates label
-;; numbers extracted from the accompanying .aux file.
+;; This package provides a minor mode, `czm-tex-fold-mode', that wraps
+;; AUCTeX's `tex-fold-mode' and provides additional folding
+;; functionality.  The additional functionality includes improved
+;; folding of \begin{...} and \end{...} declarations, references,
+;; citations, and sections.  When possible, the fold display
+;; incorporates label numbers extracted from the accompanying .aux
+;; file.
+;; 
+;; Let's start with \begin{...} and \end{...}.  `tex-fold-mode' folds
+;; these simply as [begin] and [end], respectively.  This package
+
+
+;; The new features include improved
+;; folding of \begin{...} and \end{...} declarations, references,
+;; citations, and sections.  When possible, the fold display
+;; incorporates label numbers extracted from the accompanying .aux
+;; file.
+;;
+;; The package
 ;;
 ;; My use-package declaration:
 ;; 
@@ -359,42 +373,42 @@ That means, put respective properties onto overlay OV."
         t
       (let* (
              (computed (cond
-                        ((stringp spec)
-                         (TeX-fold-expand-spec spec ov-start ov-end))
-                        ((functionp spec)
-                         (let (arg arg-list
-                                   (n 1)
-                                   (m 1))
-                           (while (setq arg (TeX-fold-macro-nth-arg
-                                             n ov-start ov-end))
-                             (unless (member (car arg) arg-list)
-                               (setq arg-list (append arg-list (list (car arg)))))
-                             (setq n (1+ n)))
-                           (let* ((description
-                                   (car
-                                    (TeX-fold-macro-nth-arg
-                                     m ov-start ov-end
-                                     '(?\[ . ?\]))))
-                                  (label
-                                   (save-excursion
-                                     (goto-char ov-start)
-                                     (when
-                                         (re-search-forward
-                                          "\\label{\\([^}]+\\)}" (line-end-position) t)
-                                       (let ((name
-                                              (match-string-no-properties 1)))
-                                         (czm-tex-util-get-label-number name)))))
-                                  (plist `(:description ,description
-                                                        :label ,label
-                                                        :default ,(TeX-fold-macro-nth-arg 1 ov-start ov-end))))
-                             (funcall spec (car arg-list) (cdr arg-list) plist)
-                             ;; (or (condition-case nil
-                             ;;              (funcall spec (car arg-list) (cdr arg-list) plist)
-                             ;;            (error nil))
-                             ;;          "[Error: No content or function found]")
-                             )))
-                        (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
-                               "[Error: No content found]"))))
+                         ((stringp spec)
+                          (TeX-fold-expand-spec spec ov-start ov-end))
+                         ((functionp spec)
+                          (let (arg arg-list
+                                    (n 1)
+                                    (m 1))
+                            (while (setq arg (TeX-fold-macro-nth-arg
+                                              n ov-start ov-end))
+                              (unless (member (car arg) arg-list)
+                                (setq arg-list (append arg-list (list (car arg)))))
+                              (setq n (1+ n)))
+                            (let* ((description
+                                    (car
+                                     (TeX-fold-macro-nth-arg
+                                      m ov-start ov-end
+                                      '(?\[ . ?\]))))
+                                   (label
+                                    (save-excursion
+                                      (goto-char ov-start)
+                                      (when
+                                          (re-search-forward
+                                           "\\label{\\([^}]+\\)}" (line-end-position) t)
+                                        (let ((name
+                                               (match-string-no-properties 1)))
+                                          (czm-tex-util-get-label-number name)))))
+                                   (plist `(:description ,description
+                                                         :label ,label
+                                                         :default ,(TeX-fold-macro-nth-arg 1 ov-start ov-end))))
+                              (funcall spec (car arg-list) (cdr arg-list) plist)
+                              ;; (or (condition-case nil
+                              ;;              (funcall spec (car arg-list) (cdr arg-list) plist)
+                              ;;            (error nil))
+                              ;;          "[Error: No content or function found]")
+                              )))
+                         (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
+                                "[Error: No content found]"))))
              (display-string (if (listp computed) (car computed) computed))
              ;; (face (when (listp computed) (cadr computed)))
              )
@@ -427,13 +441,13 @@ That means, put respective properties onto overlay OV."
 
 
 (defun czm-tex-fold--init ()
-  (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold-clear-quote-overlays)
+  (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold--clear-misc-overlays)
   (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes)
   (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes)
   (advice-add #'TeX-fold-hide-item :override #'czm-tex-fold-override-TeX-fold-hide-item))
 
 (defun czm-tex-fold--close ()
-  (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold-clear-quote-overlays)
+  (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold--clear-misc-overlays)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-quotes)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-dashes)
   (advice-remove #'TeX-fold-hide-item #'czm-tex-fold-override-TeX-fold-hide-item))
@@ -487,7 +501,7 @@ That means, put respective properties onto overlay OV."
       (let ((quote-start (match-beginning 0))
             (quote-end (match-end 0))
             (replacement (if (string= (match-string 0) "``") "“" "”")))
-        (czm-tex-fold-create-quote-overlay quote-start quote-end replacement)))))
+        (czm-tex-fold--create-misc-overlay quote-start quote-end replacement)))))
 
 (defun czm-tex-fold-dashes (start end)
   "Fold dashes in the region between START and END using overlays."
@@ -497,29 +511,29 @@ That means, put respective properties onto overlay OV."
       (let ((match-start (match-beginning 0))
             (match-end (match-end 0))
             (replacement "—"))
-        (czm-tex-fold-create-quote-overlay match-start match-end replacement)))
+        (czm-tex-fold--create-misc-overlay match-start match-end replacement)))
     (goto-char start)
     (while (re-search-forward "\\b\\(--\\)\\b" end t)
       (let ((match-start (match-beginning 0))
             (match-end (match-end 0))
             (replacement "–"))
-        (czm-tex-fold-create-quote-overlay match-start match-end replacement)))))
+        (czm-tex-fold--create-misc-overlay match-start match-end replacement)))))
 
-
-(defun czm-tex-fold-create-quote-overlay (start end replacement)
+(defun czm-tex-fold--create-misc-overlay (start end replacement)
   "Create an overlay to fold quotes between START and END with REPLACEMENT."
   (let ((overlay (make-overlay start end)))
     (overlay-put overlay 'display replacement)
     (overlay-put overlay 'evaporate t) ; Remove the overlay when the text is modified.
-    (overlay-put overlay 'quote-fold t)))
+    (overlay-put overlay 'czm-tex-fold-misc t)))
 
-(defun czm-tex-fold-clear-quote-overlays ()
+(defun czm-tex-fold--clear-misc-overlays ()
   "Remove all quote overlays in the current buffer."
-  (remove-overlays nil nil 'quote-fold t))
+  (remove-overlays nil nil 'czm-tex-fold-misc t))
 
+;; miscellaneous: fold the contents of a section.  These could have
+;; just as well been included in `tex-fold.el'.
 
-;; miscellaneous: fold the contents of a section
-
+;;;###autoload
 (defun czm-tex-fold-fold-section ()
   "Hide all configured macros and environments in the current section.
 The relevant macros are specified in the variable `TeX-fold-macro-spec-list'
@@ -533,6 +547,7 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
       (TeX-fold-region start end))))
 
 
+;;;###autoload
 (defun czm-tex-fold-clearout-section ()
   "Permanently show all macros in the section point is located in."
   (interactive)
