@@ -1,4 +1,4 @@
-;;; czm-tex-fold.el --- Extensions for tex-fold.el  -*- lexical-binding: t; -*-
+;; czm-tex-fold.el --- Extensions for tex-fold.el  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023  Paul D. Nelson
 
@@ -89,50 +89,32 @@
 
 (defcustom czm-tex-fold-macro-spec-list
   '(("[f]" ("footnote" "marginpar"))
-    (czm-tex-fold-label-function ("label"))
-    (czm-tex-fold-cite-function ("cite"))
-    (czm-tex-fold-textcolor-function ("textcolor"))
-    (czm-tex-fold-alert-function ("alert"))
+    (czm-tex-fold-label-display ("label"))
+    (czm-tex-fold-cite-display ("cite"))
+    (czm-tex-fold-textcolor-display ("textcolor"))
+    (czm-tex-fold-alert-display ("alert"))
     ("[r]" ("pageref" "footref"))
-    (czm-tex-fold-ref-function ("ref"))
-    (czm-tex-fold-eqref-function ("eqref"))
-    (czm-tex-fold-href-function ("href"))
+    (czm-tex-fold-ref-display ("ref"))
+    (czm-tex-fold-eqref-display ("eqref"))
+    (czm-tex-fold-href-display ("href"))
     ("[i]" ("index" "glossary"))
     ("[1]:||*" ("item"))
     ("..." ("dots"))
     ("(C)" ("copyright"))
     ("(R)" ("textregistered"))
     ("TM" ("texttrademark"))
-    (czm-tex-fold-begin-function ("begin"))
-    (czm-tex-fold-end-function ("end"))
-    (czm-tex-fold-section-function ("section" "part" "chapter" "subsection" "subsubsection"))
+    (czm-tex-fold-begin-display ("begin"))
+    (czm-tex-fold-end-display ("end"))
     ("🌱" ("documentclass"))
     ("🌌" ("input"))
     ("📚" ("bibliography"))
     ("📖" ("bibliographystyle"))
-    (1 ("paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup")))
-  "List of replacement specifiers and macros to fold.
-TODO: docs"
-  :type '(repeat (choice (group (string :tag "Replacement Specifier")
-                                (repeat :tag "Macros" (string)))
-                         (group (integer :tag "Replacement Specifier")
-                                (repeat :tag "Macros" (string)))
-                         (group (function :tag "Function to execute")
-                                (repeat :tag "Macros" (string)))))
-  :group 'czm-tex-fold)
-
-(defvar czm-tex-fold--TeX-fold-macro-spec-list-orig nil)
+    (1 ("section" "part" "chapter" "subsection" "subsubsection" "paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup"))))
 
 (defun czm-tex-fold-setup ()
   "Default setup for `czm-tex-fold'."
-  )
-
-(defcustom
-  czm-tex-fold-exclude-list
-  '("equation" "equation*" "align" "align*" "multline" "multline*")
-  "List of types to be excluded by the advice for `TeX-fold-hide-item'."
-  :type '(repeat string)
-  :group 'czm-tex-fold)
+  (interactive)
+  (setq TeX-fold-macro-spec-list czm-tex-fold-macro-spec-list))
 
 (defcustom czm-tex-fold-begin-default
   "↴"
@@ -146,166 +128,127 @@ TODO: docs"
   :type 'string
   :group 'czm-tex-fold)
 
-(defcustom czm-tex-fold-spec-list
+(defcustom czm-tex-fold-environment-delimiter-spec-list
   '((("🌅" . "🌇")
      ("document"))
     (("⚡" . "⚡")
      ("minted" "minted*"))
     (("♣" . "♣")
      ("results" "results*"))
-    ((czm-tex-fold-standard-display-function . "□")
+    ((czm-tex-fold-standard-display . "□")
      ("proof"))
-    ((czm-tex-fold-standard-display-function . "◼")
+    ((czm-tex-fold-standard-display . "◼")
      ("lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary")))
-  "List of specifications for `czm-tex-fold-begin-function'.
+  "List of specifications for `czm-tex-fold-begin-display'.
 
 Each element of the list is a specification for a fold display.
-Each specification is a list of two elements: the first element
-is either
+Each specification is a list of two elements.  The first element
+is a cons cell, with car and cdr corresponding to \begin{...} and
+\end{...} macros, each of which is either
 
   - a string, which is used as the fold display string, or
 
-  - a function, which is called with the arguments TYPE, ARGS and
-    PLIST (see the documentation for
-    `czm-tex-fold-begin-function` for a description of these
-    arguments) and should return a string to be used as the fold
-    display string.
+  - a function, which is called with the required macro arguments
+    and should return a string for the fold display.
 
-The second element of the specification is a list of types for
-which the fold display string should be used.  The types are the
-first argument to the \begin{...} macro (e.g., \"theorem\")."
+The second element of the specification is a list of environment
+types (e.g., \"theorem\" or \"proof\") to which the specification
+applies."
   :type '(repeat (group (choice (string :tag "Display String")
                                 (function :tag "Function to execute"))
                         (repeat :tag "Types" (string))))
   :group 'czm-tex-fold)
 
-(defun czm-tex-fold-standard-display-function (type &optional _args plist)
+(defun czm-tex-fold--optional-args ()
+  (let ((beg (point))
+        (end (TeX-fold-item-end (point) 'macro))
+        (n 1) result)
+    (while-let ((arg (TeX-fold-macro-nth-arg
+                      n beg end '(?\[ . ?\]))))
+      (push (substring-no-properties (car arg)) result)
+      (setq n (1+ n)))
+    (nreverse result)))
+
+(defun czm-tex-fold-standard-display (type &rest args)
   "Format fold display for tex environment TYPE.
 TYPE, ARGS and PLIST are described in the
-documentation for `czm-tex-fold-begin-function'."
+documentation for `czm-tex-fold-begin-display'."
   (let ((uppercase (concat (upcase (substring type 0 1)) (substring type 1)))
-        (description (plist-get plist :description))
-        (label (plist-get plist :label)))
-    ;; (concat
-    ;;  (format "%s" uppercase)
-    ;;  (when label
-    ;;    (format " %s" label))
-    ;;  (when description
-    ;;    (format " (%s)" description))
-    ;;  ".")
+        (description (car (czm-tex-fold--optional-args)))
+        (has-label (re-search-forward
+                    "\\label{\\([^}]+\\)}" (line-end-position) t)))
     (concat
      (format "%s" uppercase)
      (when description
        (format " (%s)" description))
-     (if label " " "."))))
+     (if has-label " " "."))))
 
-(defun czm-tex-fold-helper-function (begin-p type &optional args plist)
-  "Fold display string for \begin{...} or \end{...} macro.
-If BEGIN-P is non-nil, this is a \begin{...} macro.  Otherwise,
-it is an \end{...} macro.  TYPE, ARGS and PLIST are described in the
-documentation for `czm-tex-fold-begin-function'."
-  (let ((default-fold (if begin-p czm-tex-fold-begin-default czm-tex-fold-end-default)))
-    (cl-dolist (spec czm-tex-fold-spec-list default-fold)
-      (let ((display-string
-             (if begin-p
-                 (caar spec)
-               (cdar spec)))
-            (types (cadr spec)))
-        (when (member type types)
+(defun czm-tex-fold-helper-display (type env &rest args)
+  "Fold display string for \begin{ENV} or \end{ENV} macro.
+TYPE should be either \='begin or \='end.  ARGS are the remaining
+{} arguments to the macro."
+  (let ((default-fold (if (eq type 'begin)
+                          czm-tex-fold-begin-default
+                        czm-tex-fold-end-default)))
+    (cl-dolist (spec czm-tex-fold-environment-delimiter-spec-list
+                     default-fold)
+      (let* ((display-rule (car spec))
+             (display-string
+              (if (eq type 'begin)
+                  (car display-rule)
+                (cdr display-rule)))
+             (envs (cadr spec)))
+        (when (member env envs)
           (if (functionp display-string)
-              (cl-return (funcall display-string type args plist))
+              (cl-return (funcall display-string env args))
             (cl-return display-string)))))))
 
-(defun czm-tex-fold-begin-function (type &optional args plist)
-  "Format the fold display for a \begin{...} macro.
+(defun czm-tex-fold-begin-display (env &rest args)
+  "Fold display for a \begin{ENV}.
+ARGS is the list of {} arguments supplied to the macro."
+  (czm-tex-fold-helper-display 'begin env args plist))
 
-TYPE is the first argument to the macro (e.g., \"theorem\").
+(defun czm-tex-fold-end-display (env &rest args)
+  "Fold display for a \end{ENV} macro.
+ARGS is the list of {} arguments supplied to the macro."
+  (czm-tex-fold-helper-display 'end env args))
 
-ARGS is the list of optional {} arguments supplied to the macro.
-
-PLIST contains additional properties:
-
-:description - A description of the environment (e.g., \"The
-  fundamental theorem of arithmetic\").
-
-:label - The label of the environment (e.g., \"thm:fundamental\").
-
-:default - The default fold display string for the environment.
-  If this is a string, it is used as the fold display string.  If
-  it is a list, the first element is used as the fold display
-  string."
-  (czm-tex-fold-helper-function t type args plist))
-
-(defun czm-tex-fold-end-function (type &optional args plist)
-  "Format the fold display for an \end{...} macro.
-TYPE, ARGS and PLIST are described in the
-documentation for `czm-tex-fold-begin-function'."
-  (czm-tex-fold-helper-function nil type args plist))
-
-(defun czm-tex-fold-section-function (_type &optional _args plist)
-  "Format the fold display for a sectioning macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (let* ((default-plain (plist-get plist :default))
-         (default (if (listp default-plain) (car default-plain) default-plain))
-         (label (plist-get plist :label)))
-    (setq label nil)                    ; decided not to use it
-    (concat
-     (when label
-       (let ((label-string (format "§%s. " label)))
-         (apply #'propertize (append `(,label-string) (text-properties-at 0 default)))))
-     default)))
-
-(defun czm-tex-fold-ref-helper (type default)
-  "Helper function for `czm-tex-fold-ref-function'.
-TYPE is as described in the documentation for `czm-tex-fold-begin-function'.
+(defun czm-tex-fold-ref-helper (label default)
+  "Helper function for `czm-tex-fold-ref-display'.
+LABEL is the label name.
 DEFAULT is the default fold display string for the environment."
-  (format "[%s]" (or (czm-tex-util-get-label-number type) default)))
+  (format "[%s]" (or (czm-tex-util-get-label-number label)
+                     default)))
 
-(defun czm-tex-fold-ref-function (type &optional _args _plist)
-  "Format the fold display for a \ref{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (czm-tex-fold-ref-helper type "r"))
+(defun czm-tex-fold-ref-display (label &rest _args)
+  "Fold display for a \ref{LABEL} macro."
+  (czm-tex-fold-ref-helper label "r"))
 
-(defun czm-tex-fold-eqref-function (type &optional _args _plist)
-  "Format the fold display for a \eqref{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (czm-tex-fold-ref-helper type "e"))
+(defun czm-tex-fold-eqref-display (label &rest _args)
+  "Fold display for a \eqref{LABEL} macro."
+  (czm-tex-fold-ref-helper label "e"))
 
-(defun czm-tex-fold-href-function (_type &optional args _plist)
-  "Format the fold display for a \\href{...}{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (format "[%s]"
-          (or (car args)
-              "href")))
+(defun czm-tex-fold-href-display (link name &rest _args)
+  "Fold display for a \\href{LINK}{NAME} macro."
+  (format "[%s]" (or name "href")))
 
-(defun czm-tex-fold-label-function (type &optional _args _plist)
-  "Format the fold display for a \\label{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
+(defun czm-tex-fold-label-display (label &rest _args)
+  "Fold display for a \\label{LABEL} macro."
   (czm-tex-fold-ref-helper type "l"))
 
-(defun czm-tex-fold-textcolor-function (type &optional args _plist)
-  "Format the fold display for a \\textcolor{...}{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (let ((str   (car args)))
-    (with-temp-buffer
-      (insert str)
-      (put-text-property (point-min) (point-max)
-                         'face `(:foreground ,type)
-                         (current-buffer))
-      (buffer-string))))
-
-(defun czm-tex-fold-alert-function (type &optional _args _plist)
-  "Format the fold display for a \\alert{...} macro.
-TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
+(defun czm-tex-fold-textcolor-display (color text &rest _args)
+  "Fold display for a \\textcolor{COLOR}{TEXT} macro."
   (with-temp-buffer
-    (insert type)
+    (insert text)
+    (put-text-property (point-min) (point-max)
+                       'face `(:foreground ,color)
+                       (current-buffer))
+    (buffer-string)))
+
+(defun czm-tex-fold-alert-display (text &rest _args)
+  "Fold display for a \\alert{TEXT} macro."
+  (with-temp-buffer
+    (insert text)
     (put-text-property (point-min) (point-max)
                        'face `(:foreground "red")
                        (current-buffer))
@@ -318,8 +261,7 @@ followed by the last two digits of the year."
   (when-let* ((entry (bibtex-parse-entry))
               (author (bibtex-text-in-field "author" entry))
               (year (bibtex-text-in-field "year" entry)))
-    (let* (
-           (initials
+    (let* ((initials
             (mapconcat
              (lambda (x)
                (when-let
@@ -331,11 +273,11 @@ followed by the last two digits of the year."
 
 
 
-(defun czm-tex-fold-cite-function (type &optional _args plist)
+(defun czm-tex-fold-cite-display (reference-names &rest _args)
   "Format the fold display for a \\cite macro.
 TYPE, ARGS and PLIST are described in the documentation for
-`czm-tex-fold-begin-function'."
-  (let* ((citation (plist-get plist :description))
+`czm-tex-fold-begin-display'."
+  (let* ((citation (car (czm-tex-fold--optional-args)))
          (references
           (mapcar (lambda (cite)
                     (let ((trimmed-cite (string-trim cite)))
@@ -349,7 +291,7 @@ TYPE, ARGS and PLIST are described in the documentation for
                               (save-excursion
                                 (bibtex-beginning-of-entry)
                                 (czm-tex-fold-bibtex-abbrev))))))))
-                  (split-string type ",")))
+                  (split-string reference-names ",")))
          (joined-references (string-join references ", ")))
     (concat
      "["
@@ -360,82 +302,82 @@ TYPE, ARGS and PLIST are described in the documentation for
 
 
 
-(defun czm-tex-fold-override-TeX-fold-hide-item (ov)
-  "Hide a single macro or environment.
-That means, put respective properties onto overlay OV."
-  (let* ((ov-start (overlay-start ov))
-         (ov-end (overlay-end ov))
-         (spec (overlay-get ov 'TeX-fold-display-string-spec))
-         (type (TeX-fold-macro-nth-arg 1 ov-start ov-end)))
-    (if (and (functionp spec)
-             (memq spec '(czm-tex-fold-begin-function czm-tex-fold-end-function))
-             (member (car type) czm-tex-fold-exclude-list))
-        t
-      (let* (
-             (computed (cond
-                         ((stringp spec)
-                          (TeX-fold-expand-spec spec ov-start ov-end))
-                         ((functionp spec)
-                          (let (arg arg-list
-                                    (n 1)
-                                    (m 1))
-                            (while (setq arg (TeX-fold-macro-nth-arg
-                                              n ov-start ov-end))
-                              (unless (member (car arg) arg-list)
-                                (setq arg-list (append arg-list (list (car arg)))))
-                              (setq n (1+ n)))
-                            (let* ((description
-                                    (car
-                                     (TeX-fold-macro-nth-arg
-                                      m ov-start ov-end
-                                      '(?\[ . ?\]))))
-                                   (label
-                                    (save-excursion
-                                      (goto-char ov-start)
-                                      (when
-                                          (re-search-forward
-                                           "\\label{\\([^}]+\\)}" (line-end-position) t)
-                                        (let ((name
-                                               (match-string-no-properties 1)))
-                                          (czm-tex-util-get-label-number name)))))
-                                   (plist `(:description ,description
-                                                         :label ,label
-                                                         :default ,(TeX-fold-macro-nth-arg 1 ov-start ov-end))))
-                              (funcall spec (car arg-list) (cdr arg-list) plist)
-                              ;; (or (condition-case nil
-                              ;;              (funcall spec (car arg-list) (cdr arg-list) plist)
-                              ;;            (error nil))
-                              ;;          "[Error: No content or function found]")
-                              )))
-                         (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
-                                "[Error: No content found]"))))
-             (display-string (if (listp computed) (car computed) computed))
-             ;; (face (when (listp computed) (cadr computed)))
-             )
-        ;; Do nothing if the overlay is empty.
-        (when (and ov-start ov-end)
-          ;; Cater for zero-length display strings.
-          (when (string= display-string "") (setq display-string TeX-fold-ellipsis))
-          ;; Add a linebreak to the display string and adjust the overlay end
-          ;; in case of an overfull line.
-          (when (TeX-fold-overfull-p ov-start ov-end display-string)
-            (setq display-string (concat display-string "\n"))
-            (move-overlay ov ov-start (save-excursion
-                                        (goto-char ov-end)
-                                        (skip-chars-forward " \t")
-                                        (point))))
-          (overlay-put ov 'mouse-face 'highlight)
-          (when font-lock-mode
-            ;; Add raise adjustment for superscript and subscript.  (bug#42209)
-            (setq display-string
-                  (propertize display-string
-                              'display (get-text-property ov-start 'display))))
-          (overlay-put ov 'display display-string)
-          (when font-lock-mode
-            (overlay-put ov 'face TeX-fold-folded-face))
-          (unless (zerop TeX-fold-help-echo-max-length)
-            (overlay-put ov 'help-echo (TeX-fold-make-help-echo
-                                        (overlay-start ov) (overlay-end ov)))))))))
+;; (defun czm-tex-fold-override-TeX-fold-hide-item (ov)
+;;   "Hide a single macro or environment.
+;; That means, put respective properties onto overlay OV."
+;;   (let* ((ov-start (overlay-start ov))
+;;          (ov-end (overlay-end ov))
+;;          (spec (overlay-get ov 'TeX-fold-display-string-spec))
+;;          (type (TeX-fold-macro-nth-arg 1 ov-start ov-end)))
+;;     (if (and (functionp spec)
+;;              (memq spec '(czm-tex-fold-begin-display czm-tex-fold-end-function))
+;;              (member (car type) czm-tex-fold-exclude-list))
+;;         t
+;;       (let* (
+;;              (computed (cond
+;;                          ((stringp spec)
+;;                           (TeX-fold-expand-spec spec ov-start ov-end))
+;;                          ((functionp spec)
+;;                           (let (arg arg-list
+;;                                     (n 1)
+;;                                     (m 1))
+;;                             (while (setq arg (TeX-fold-macro-nth-arg
+;;                                               n ov-start ov-end))
+;;                               (unless (member (car arg) arg-list)
+;;                                 (setq arg-list (append arg-list (list (car arg)))))
+;;                               (setq n (1+ n)))
+;;                             (let* ((description
+;;                                     (car
+;;                                      (TeX-fold-macro-nth-arg
+;;                                       m ov-start ov-end
+;;                                       '(?\[ . ?\]))))
+;;                                    (label
+;;                                     (save-excursion
+;;                                       (goto-char ov-start)
+;;                                       (when
+;;                                           (re-search-forward
+;;                                            "\\label{\\([^}]+\\)}" (line-end-position) t)
+;;                                         (let ((name
+;;                                                (match-string-no-properties 1)))
+;;                                           (czm-tex-util-get-label-number name)))))
+;;                                    (plist `(:description ,description
+;;                                                          :label ,label
+;;                                                          :default ,(TeX-fold-macro-nth-arg 1 ov-start ov-end))))
+;;                               (funcall spec (car arg-list) (cdr arg-list) plist)
+;;                               ;; (or (condition-case nil
+;;                               ;;              (funcall spec (car arg-list) (cdr arg-list) plist)
+;;                               ;;            (error nil))
+;;                               ;;          "[Error: No content or function found]")
+;;                               )))
+;;                          (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
+;;                                 "[Error: No content found]"))))
+;;              (display-string (if (listp computed) (car computed) computed))
+;;              ;; (face (when (listp computed) (cadr computed)))
+;;              )
+;;         ;; Do nothing if the overlay is empty.
+;;         (when (and ov-start ov-end)
+;;           ;; Cater for zero-length display strings.
+;;           (when (string= display-string "") (setq display-string TeX-fold-ellipsis))
+;;           ;; Add a linebreak to the display string and adjust the overlay end
+;;           ;; in case of an overfull line.
+;;           (when (TeX-fold-overfull-p ov-start ov-end display-string)
+;;             (setq display-string (concat display-string "\n"))
+;;             (move-overlay ov ov-start (save-excursion
+;;                                         (goto-char ov-end)
+;;                                         (skip-chars-forward " \t")
+;;                                         (point))))
+;;           (overlay-put ov 'mouse-face 'highlight)
+;;           (when font-lock-mode
+;;             ;; Add raise adjustment for superscript and subscript.  (bug#42209)
+;;             (setq display-string
+;;                   (propertize display-string
+;;                               'display (get-text-property ov-start 'display))))
+;;           (overlay-put ov 'display display-string)
+;;           (when font-lock-mode
+;;             (overlay-put ov 'face TeX-fold-folded-face))
+;;           (unless (zerop TeX-fold-help-echo-max-length)
+;;             (overlay-put ov 'help-echo (TeX-fold-make-help-echo
+;;                                         (overlay-start ov) (overlay-end ov)))))))))
 
 
 
