@@ -45,7 +45,7 @@
 ;;     :custom
 ;;     (czm-tex-fold-bib-file . "~/doit/refs.bib")
 ;;     :hook
-;;     (LaTeX-mode . tex-fold-mode))
+;;     (LaTeX-mode . czm-tex-fold-mode))
 ;;
 ;; Replace "~/doit/refs.bib" with your favorite bib file.  To
 ;; customize the fold display, replace `czm-tex-fold-setup' in the
@@ -60,43 +60,58 @@
 (require 'cl-lib)
 (require 'czm-tex-util)
 
+(defgroup czm-tex-fold nil
+  "Customizations for folding LaTeX documents."
+  :group 'tex)
+
 (defcustom czm-tex-fold-bib-file
   nil
   "BibTeX file from which to extract citation keys."
   :type 'string
   :group 'czm-tex-fold)
 
+;; TODO should probably redesign this to be a major mode that you
+;; activate, rather than something that modifies stuff
+
+(defcustom czm-tex-fold-macro-spec-list
+  '(("[f]" ("footnote" "marginpar"))
+    (czm-tex-fold-label-function ("label"))
+    (czm-tex-fold-cite-function ("cite"))
+    (czm-tex-fold-textcolor-function ("textcolor"))
+    (czm-tex-fold-alert-function ("alert"))
+    ("[r]" ("pageref" "footref"))
+    (czm-tex-fold-ref-function ("ref"))
+    (czm-tex-fold-eqref-function ("eqref"))
+    (czm-tex-fold-href-function ("href"))
+    ("[i]" ("index" "glossary"))
+    ("[1]:||*" ("item"))
+    ("..." ("dots"))
+    ("(C)" ("copyright"))
+    ("(R)" ("textregistered"))
+    ("TM" ("texttrademark"))
+    (czm-tex-fold-begin-function ("begin"))
+    (czm-tex-fold-end-function ("end"))
+    (czm-tex-fold-section-function ("section" "part" "chapter" "subsection" "subsubsection"))
+    ("🌱" ("documentclass"))
+    ("🌌" ("input"))
+    ("📚" ("bibliography"))
+    ("📖" ("bibliographystyle"))
+    (1 ("paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup")))
+  "List of replacement specifiers and macros to fold.
+TODO: docs"
+  :type '(repeat (choice (group (string :tag "Replacement Specifier")
+                                (repeat :tag "Macros" (string)))
+                         (group (integer :tag "Replacement Specifier")
+                                (repeat :tag "Macros" (string)))
+                         (group (function :tag "Function to execute")
+                                (repeat :tag "Macros" (string)))))
+  :group 'czm-tex-fold)
+
+(defvar czm-tex-fold--TeX-fold-macro-spec-list-orig nil)
+
 (defun czm-tex-fold-setup ()
   "Default setup for `czm-tex-fold'."
-  (add-to-list 'revert-without-query "\\.aux$")
-  (setq TeX-fold-macro-spec-list
-        '(("[f]" ("footnote" "marginpar"))
-	  (czm-tex-fold-label-function ("label"))
-	  (czm-tex-fold-cite-function ("cite"))
-	  (czm-tex-fold-textcolor-function ("textcolor"))
-	  (czm-tex-fold-alert-function ("alert"))
-          ("[r]" ("pageref" "footref"))
-	  (czm-tex-fold-ref-function ("ref"))
-	  (czm-tex-fold-eqref-function ("eqref"))
-	  (czm-tex-fold-href-function ("href"))
-          ("[i]" ("index" "glossary"))
-          ("[1]:||*" ("item"))
-          ("..." ("dots"))
-          ("(C)" ("copyright"))
-          ("(R)" ("textregistered"))
-          ("TM" ("texttrademark"))
-          (czm-tex-fold-begin-function ("begin"))
-          (czm-tex-fold-end-function ("end"))
-	  (czm-tex-fold-section-function ("section" "part" "chapter" "subsection" "subsubsection"))
-          ("🌱" ("documentclass"))
-          ("🌌" ("input"))
-          ("📚" ("bibliography"))
-          ("📖" ("bibliographystyle"))
-          (1 ("paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup")))))
-
-(defgroup czm-tex-fold nil
-  "Customizations for folding LaTeX documents."
-  :group 'tex)
+  )
 
 (defcustom
   czm-tex-fold-exclude-list
@@ -330,7 +345,6 @@ TYPE, ARGS and PLIST are described in the documentation for
      "]")))
 
 
-(advice-add #'TeX-fold-hide-item :override #'czm-tex-fold-override-TeX-fold-hide-item)
 
 (defun czm-tex-fold-override-TeX-fold-hide-item (ov)
   "Hide a single macro or environment.
@@ -409,6 +423,62 @@ That means, put respective properties onto overlay OV."
 	    (overlay-put ov 'help-echo (TeX-fold-make-help-echo
 					(overlay-start ov) (overlay-end ov)))))))))
 
+
+
+
+(defun czm-tex-fold--init ()
+  (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold-clear-quote-overlays)
+  (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes)
+  (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes)
+  (advice-add #'TeX-fold-hide-item :override #'czm-tex-fold-override-TeX-fold-hide-item))
+
+(defun czm-tex-fold--close ()
+  (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold-clear-quote-overlays)
+  (advice-remove 'TeX-fold-region #'czm-tex-fold-quotes)
+  (advice-remove 'TeX-fold-region #'czm-tex-fold-dashes)
+  (advice-remove #'TeX-fold-hide-item #'czm-tex-fold-override-TeX-fold-hide-item))
+
+(defvar czm-tex-fold--aux-files-revert-without-query-orig nil
+  "Stores whether \"\\\\.aux\" is in `revert-without-query'")
+
+(defvar czm-tex-fold--tex-fold-mode-orig nil
+  "Stores the value of `TeX-fold-mode'")
+
+(define-minor-mode czm-tex-fold-mode
+  "Minor mode for hiding and revealing macros and environments."
+  :init-value nil
+  :lighter nil
+  :keymap (list (cons TeX-fold-command-prefix TeX-fold-keymap))
+  (if czm-tex-fold-mode
+      (progn
+        (czm-tex-fold--init)
+
+        (when TeX-fold-mode
+          (TeX-fold-mode 0))
+        (TeX-fold-mode 1)
+        
+        (setq czm-tex-fold--TeX-fold-macro-spec-list-orig TeX-fold-macro-spec-list)
+        (setq TeX-fold-macro-spec-list czm-tex-fold-macro-spec-list)
+        
+        (setq czm-tex-fold--aux-files-revert-without-query-orig
+              (member "\\.aux$" revert-without-query))
+        (add-to-list 'revert-without-query "\\.aux$")
+
+        (setq czm-tex-fold--tex-fold-mode-orig TeX-fold-mode)
+
+        )
+    
+    (czm-tex-fold--close)
+    
+    (setq TeX-fold-macro-spec-list czm-tex-fold--TeX-fold-macro-spec-list-orig)
+    
+    (unless czm-tex-fold--aux-files-revert-without-query-orig
+      (setq revert-without-query
+            (remove "\\.aux$" revert-without-query)))
+
+    (unless czm-tex-fold--tex-fold-mode-orig
+      (TeX-fold-mode 0))))
+
 ;; miscellaneous: fold quotes and dashes
 
 (defun czm-tex-fold-quotes (start end)
@@ -437,8 +507,6 @@ That means, put respective properties onto overlay OV."
             (replacement "–"))
         (czm-tex-fold-create-quote-overlay match-start match-end replacement)))))
 
-(advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes)
-(advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes)
 
 (defun czm-tex-fold-create-quote-overlay (start end replacement)
   "Create an overlay to fold quotes between START and END with REPLACEMENT."
@@ -451,7 +519,6 @@ That means, put respective properties onto overlay OV."
   "Remove all quote overlays in the current buffer."
   (remove-overlays nil nil 'quote-fold t))
 
-(advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold-clear-quote-overlays)
 
 ;; miscellaneous: fold the contents of a section
 
