@@ -55,8 +55,9 @@
 ;; The package includes a couple miscellaneous features that I have
 ;; found useful in connection with `TeX-fold-mode'.
 ;;
-;; - Folding for dashes and quotes, activated via the command
-;; `czm-tex-fold-misc-install'.
+;; - Folding for dashes and quotes, and disabled folding for certain
+;; environments.  These are activated via the command
+;; `czm-tex-fold-install'.
 ;;
 ;; - Section folding commands `czm-tex-fold-fold-section' and
 ;; `czm-tex-fold-clearout-section'.
@@ -73,7 +74,7 @@
 ;;         ("C-c C-o s" . czm-tex-fold-clearout-section))
 ;;   :config
 ;;   (czm-tex-fold-set-defaults)
-;;   (czm-tex-fold-misc-install)
+;;   (czm-tex-fold-install)
 ;;   :custom
 ;;   (czm-tex-fold-bib-file "~/doit/refs.bib")
 ;;   :hook
@@ -133,14 +134,24 @@
      ("📖" ("bibliographystyle"))
      (1 ("section" "part" "chapter" "subsection" "subsubsection" "paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup")))))
 
-(defun czm-tex-fold-misc-install ()
-  "Install miscellaneous folding features."
+(defcustom czm-tex-fold-exclude-list
+  '("equation" "equation*" "align" "align*" "multline" "multline*")
+  "List of types to be excluded by the advice for `TeX-fold-hide-item'."
+  :type '(repeat string)
+  :group 'czm-tex-fold)
+
+(defun czm-tex-fold-install ()
+  "Install `czm-tex-fold'."
+  (interactive)
+  (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
   (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes)
   (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes)
   (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold--clear-misc-overlays))
 
-(defun czm-tex-fold-misc-uninstall ()
-  "Uninstall miscellaneous folding features."
+(defun czm-tex-fold-uninstall ()
+  "Uninstall `czm-tex-fold'."
+  (interactive)
+  (advice-remove 'TeX-fold-hide-item #'czm-tex-fold--override-hide-item)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-quotes)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-dashes)
   (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold--clear-misc-overlays))
@@ -217,21 +228,22 @@ label occurs on the same line; in that case, omit the period."
   "Fold display string for \begin{ENV} or \end{ENV} macro.
 TYPE should be either \='begin or \='end.  ARGS are the remaining
 {} arguments to the macro."
-  (let ((default-fold (if (eq type 'begin)
-                          czm-tex-fold-begin-default
-                        czm-tex-fold-end-default)))
-    (cl-dolist (spec czm-tex-fold-environment-delimiter-spec-list
-                     default-fold)
-      (let* ((display-rule (car spec))
-             (display-string
-              (if (eq type 'begin)
-                  (car display-rule)
-                (cdr display-rule)))
-             (envs (cadr spec)))
-        (when (member env envs)
-          (if (functionp display-string)
-              (cl-return (funcall display-string env args))
-            (cl-return display-string)))))))
+  (unless (member env czm-tex-fold-exclude-list)
+    (let ((default-fold (if (eq type 'begin)
+                            czm-tex-fold-begin-default
+                          czm-tex-fold-end-default)))
+      (cl-dolist (spec czm-tex-fold-environment-delimiter-spec-list
+                       default-fold)
+        (let* ((display-rule (car spec))
+               (display-string
+                (if (eq type 'begin)
+                    (car display-rule)
+                  (cdr display-rule)))
+               (envs (cadr spec)))
+          (when (member env envs)
+            (if (functionp display-string)
+                (cl-return (funcall display-string env args))
+              (cl-return display-string))))))))
 
 (defun czm-tex-fold-begin-display (env &rest args)
   "Fold display for a \begin{ENV}.
@@ -391,6 +403,61 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
           (end (mark)))
       (TeX-fold-clearout-region start end))))
 
+(defun czm-tex-fold--override-hide-item (ov)
+  "Hide a single macro or environment.
+That means, put respective properties onto overlay OV.
+
+OVERRIDE DIFFERENCE: if the function object returns nil, then the
+overlay is deleted."
+  (let* ((ov-start (overlay-start ov))
+         (ov-end (overlay-end ov))
+         (spec (overlay-get ov 'TeX-fold-display-string-spec))
+         (computed (cond
+                    ((stringp spec)
+                     (TeX-fold-expand-spec spec ov-start ov-end))
+                    ((functionp spec)
+                     (let (arg arg-list
+                               (n 1))
+                       (while (setq arg (TeX-fold-macro-nth-arg
+                                         n ov-start ov-end))
+                         (unless (member (car arg) arg-list)
+                           (setq arg-list (append arg-list (list (car arg)))))
+                         (setq n (1+ n)))
+                       (condition-case nil
+                           (apply spec arg-list)
+                         (error nil))))
+                    (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
+                           "[Error: No content found]"))))
+         (display-string (if (listp computed) (car computed) computed))
+         ;; (face (when (listp computed) (cadr computed)))
+         )
+    (if (not computed)
+        (progn (delete-overlay ov) t)
+      ;; Do nothing if the overlay is empty.
+      (when (and ov-start ov-end)
+        ;; Cater for zero-length display strings.
+        (when (string= display-string "") (setq display-string TeX-fold-ellipsis))
+        ;; Add a linebreak to the display string and adjust the overlay end
+        ;; in case of an overfull line.
+        (when (TeX-fold-overfull-p ov-start ov-end display-string)
+          (setq display-string (concat display-string "\n"))
+          (move-overlay ov ov-start (save-excursion
+                                      (goto-char ov-end)
+                                      (skip-chars-forward " \t")
+                                      (point))))
+        (overlay-put ov 'mouse-face 'highlight)
+        (when font-lock-mode
+          ;; Add raise adjustment for superscript and subscript.
+          ;; (bug#42209)
+          (setq display-string
+                (propertize display-string
+                            'display (get-text-property ov-start 'display))))
+        (overlay-put ov 'display display-string)
+        (when font-lock-mode
+          (overlay-put ov 'face TeX-fold-folded-face))
+        (unless (zerop TeX-fold-help-echo-max-length)
+          (overlay-put ov 'help-echo (TeX-fold-make-help-echo
+                                      (overlay-start ov) (overlay-end ov))))))))
 
 (provide 'czm-tex-fold)
 ;;; czm-tex-fold.el ends here
