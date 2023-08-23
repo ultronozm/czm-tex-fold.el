@@ -214,10 +214,13 @@ applies."
   "Format fold display for tex environment \\begin{ENV}.
 Return \"Env.\" except or \"Env (Description).\" except when a
 label occurs on the same line; in that case, omit the period."
-  (let ((uppercase (concat (upcase (substring env 0 1)) (substring env 1)))
-        (description (car (czm-tex-fold--optional-args)))
-        (has-label (save-excursion (re-search-forward
-                                    "\\label{\\([^}]+\\)}" (line-end-position) t))))
+  (let* ((props (text-properties-at 0 env))
+         (uppercase (concat (upcase (substring env 0 1))
+                            (substring env 1)))
+         (description (car (czm-tex-fold--optional-args)))
+         (has-label (save-excursion (re-search-forward
+                                     "\\label{\\([^}]+\\)}" (line-end-position) t))))
+    (set-text-properties 0 (length uppercase) props uppercase)
     (concat
      (format "%s" uppercase)
      (when description
