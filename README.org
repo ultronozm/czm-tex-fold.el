@@ -1,0 +1,54 @@
+#+title: czm-tex-fold.el: Extensions for tex-fold.el
+#+author: Paul Nelson
+#+STARTUP: inlineimages
+
+* Overview
+Quoting from the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html ][folding section]] of AUCTeX's manual:
+#+begin_quote
+A popular complaint about markup languages like TeX and LaTeX is that there is too much clutter in the source text and that one cannot focus well on the content. There are macros where you are only interested in the content they are enclosing, like font specifiers where the content might already be fontified in a special way by font locking. Or macros the content of which you only want to see when actually editing it, like footnotes or citations. Similarly you might find certain environments or comments distracting when trying to concentrate on the body of your document.
+
+With AUCTeX’s folding functionality you can collapse those items and replace them by a fixed string, the content of one of their arguments, or a mixture of both. If you want to make the original text visible again in order to view or edit it, move point sideways onto the placeholder (also called display string) or left-click with the mouse pointer on it. The macro or environment will unfold automatically, stay open as long as point is inside of it and collapse again once you move point out of it. (Note that folding of environments currently does not work in every AUCTeX mode.)
+#+end_quote
+
+AUCTeX's folding is highly customizable.  This package distills the customizations that I have accumulated over the years, which include improved folding for begin{...} and end{...}, references and citations.  Some of these customizations are inspired by [[https://github.com/dandavison/xenops#35-xen-mode][xen-mode]] from the package [[https://github.com/dandavison/xenops][xenops]].
+
+Let's illustrate with some pictures.  Here's a TeX file:
+
+#+attr_html: :width 800px
+#+attr_latex: :width 800px
+[[./img/file.png]]
+
+Here's the same file, but with the =czm-tex-fold.el= and [[https://github.com/ultronozm/czm-preview.el][czm-preview.el]] activated:
+
+#+attr_html: :width 800px
+#+attr_latex: :width 800px
+[[./img/pretty-file.png]]
+
+The label and reference numbers are extracted from the coresponding .aux file, which one can keep current by running =latexmk= continuously in the background (e.g., using [[https://github.com/ultronozm/czm-tex-compile.el][czm-tex-compile.el]]).
+
+* Installation
+This package requires [[https://www.gnu.org/software/auctex/manual/auctex/Installation.html#Installation][AUCTeX]] and [[https://github.com/ultronozm/czm-tex-util.el][czm-tex-util.el]], so install those first.
+
+Download this repository and install it using =M-x package-install-file=.  Then, add something like the following to your [[https://www.emacswiki.org/emacs/InitFile][init file]]:
+#+begin_src elisp
+(use-package czm-preview
+  :bind
+  (:map TeX-fold-mode-map
+        ("C-c C-o C-s" . czm-tex-fold-fold-section)
+        ("C-c C-o s" . czm-tex-fold-clearout-section))
+  :config
+  (czm-tex-fold-set-defaults)
+  (czm-tex-fold-install)
+  :custom
+  (czm-tex-fold-bib-file "~/doit/refs.bib")
+  :hook
+  (LaTeX-mode . tex-fold-mode))
+#+end_src
+Replace "~/doit/refs.bib" with the path to a .bib file containing the citations that you'd like to see folded.
+
+* Usage
+This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][instructions]] for the latter apply here.  I typically run =TeX-fold-buffer= (=C-c C-o C-b=) once when loading a file, and =TeX-fold-clearout-buffer= (=C-c C-o b=) when I want to turn off the folding.  Sometimes I also use the "section" variants defined above.
+
+* Further customization
+It can be customized the same way that =tex-fold.el= can, by further tweaking the variable  =TeX-fold-macro-spec-list= (use =C-h v= to read its documentation).  Take a look at the source code for the function =czm-tex-fold-set-defaults= (=C-h C-f=) and at =customize-group czm-tex-fold=.
+
