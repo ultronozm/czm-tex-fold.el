@@ -24,8 +24,8 @@
 ;;; Commentary:
 
 ;; This package extends AUCTeX's `TeX-fold-mode' to give improved
-;; folding of \begin{...} and \end{...} declarations, references and
-;; citations.  The basic idea is illustrated as follows:
+;; folding of begin{...} and end{...}, references and citations.  The
+;; basic idea is illustrated as follows:
 ;;
 ;; - \begin{theorem} is folded as "Theorem."
 ;; 
@@ -48,37 +48,13 @@
 ;; `czm-tex-fold-bib-file' (rather than from the file being visited --
 ;; indeed, this package works fine in non-file buffers).
 ;;
-;; To use this package, run the command `czm-tex-fold-setup' and then
-;; use `TeX-fold-mode' as usual (restarting it if it was started after
-;; running the command).
+;; To use this package, run the commands `czm-tex-fold-set-defaults'
+;; and `czm-tex-fold-install', then use `TeX-fold-mode' as usual
+;; (restarting it if it was started after running the setup commands).
 ;;
-;; The package includes a couple miscellaneous features that I have
-;; found useful in connection with `TeX-fold-mode'.
-;;
-;; - Section folding commands `czm-tex-fold-fold-section' and
+;; As a miscellaneous feature, this package includes the section
+;; folding commands `czm-tex-fold-fold-section' and
 ;; `czm-tex-fold-clearout-section'.
-;; 
-;; My use-package declaration (but make sure to load AUCTeX first):
-;;
-;; (use-package czm-tex-fold
-;;   :vc (:url "https://github.com/ultronozm/czm-tex-fold.el.git"
-;;             :rev :newest)
-;;   :demand
-;;   :bind
-;;   (:map TeX-fold-mode-map
-;;         ("C-c C-o C-s" . czm-tex-fold-fold-section)
-;;         ("C-c C-o s" . czm-tex-fold-clearout-section))
-;;   :config
-;;   (czm-tex-fold-set-defaults)
-;;   (czm-tex-fold-install)
-;;   :custom
-;;   (czm-tex-fold-bib-file "~/doit/refs.bib")
-;;   :hook
-;;   (LaTeX-mode . tex-fold-mode))
-;;
-;; Replace "~/doit/refs.bib" with your favorite bib file.  To
-;; customize the fold display, replace `czm-tex-fold-set-defaults'
-;; with your own version of that function.
 
 
 ;;; Code:
