@@ -50,5 +50,5 @@ Replace "~/doit/refs.bib" with the path to a .bib file containing the citations 
 This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][instructions]] for the latter apply here.  I typically run =TeX-fold-buffer= (=C-c C-o C-b=) once when loading a file, and =TeX-fold-clearout-buffer= (=C-c C-o b=) when I want to turn off the folding.  Sometimes I also use the "section" variants defined above.
 
 * Further customization
-It can be customized the same way that =tex-fold.el= can, by further tweaking the variable  =TeX-fold-macro-spec-list= (use =C-h v= to read its documentation).  Take a look at the source code for the function =czm-tex-fold-set-defaults= (=C-h C-f=) and at =customize-group czm-tex-fold=.
+It can be customized the same way that =tex-fold.el= can, by further tweaking the variable  =TeX-fold-macro-spec-list= (use =C-h v= to read its documentation).  Take a look at the source code for the function =czm-tex-fold-set-defaults= (=C-h C-f=) and at =M-x customize-group czm-tex-fold=.
 
