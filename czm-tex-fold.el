@@ -24,8 +24,8 @@
 ;;; Commentary:
 
 ;; This package extends AUCTeX's `TeX-fold-mode' to give improved
-;; folding of \begin{...} and \end{...} declarations, references,
-;; citations, and sections.  The basic idea is illustrated as follows:
+;; folding of \begin{...} and \end{...} declarations, references and
+;; citations.  The basic idea is illustrated as follows:
 ;;
 ;; - \begin{theorem} is folded as "Theorem."
 ;; 
@@ -158,13 +158,13 @@
 
 (defcustom czm-tex-fold-begin-default
   "↴"
-  "Default fold display for a \begin{...} macro."
+  "Default fold display for a \\begin{...} macro."
   :type 'string
   :group 'czm-tex-fold)
 
 (defcustom czm-tex-fold-end-default
   "↲"
-  "Default fold display for an \end{...} macro."
+  "Default fold display for an \\end{...} macro."
   :type 'string
   :group 'czm-tex-fold)
 
@@ -183,8 +183,8 @@
 
 Each element of the list is a specification for a fold display.
 Each specification is a list of two elements.  The first element
-is a cons cell, with car and cdr corresponding to \begin{...} and
-\end{...} macros, each of which is either
+is a cons cell, with car and cdr corresponding to \\begin{...} and
+\\end{...} macros, each of which is either
 
   - a string, which is used as the fold display string, or
 
@@ -211,7 +211,7 @@ applies."
     (nreverse result)))
 
 (defun czm-tex-fold-standard-display (env &rest _args)
-  "Format fold display for tex environment \begin{ENV}.
+  "Format fold display for tex environment \\begin{ENV}.
 Return \"Env.\" except or \"Env (Description).\" except when a
 label occurs on the same line; in that case, omit the period."
   (let ((uppercase (concat (upcase (substring env 0 1)) (substring env 1)))
@@ -225,7 +225,7 @@ label occurs on the same line; in that case, omit the period."
      (if has-label " " "."))))
 
 (defun czm-tex-fold-helper-display (type env &rest args)
-  "Fold display string for \begin{ENV} or \end{ENV} macro.
+  "Fold display string for \\begin{ENV} or \\end{ENV} macro.
 TYPE should be either \='begin or \='end.  ARGS are the remaining
 {} arguments to the macro."
   (unless (member env czm-tex-fold-exclude-list)
@@ -246,12 +246,12 @@ TYPE should be either \='begin or \='end.  ARGS are the remaining
               (cl-return display-string))))))))
 
 (defun czm-tex-fold-begin-display (env &rest args)
-  "Fold display for a \begin{ENV}.
+  "Fold display for a \\begin{ENV}.
 ARGS is the list of {} arguments supplied to the macro."
   (czm-tex-fold-helper-display 'begin env args))
 
 (defun czm-tex-fold-end-display (env &rest args)
-  "Fold display for a \end{ENV} macro.
+  "Fold display for a \\end{ENV} macro.
 ARGS is the list of {} arguments supplied to the macro."
   (czm-tex-fold-helper-display 'end env args))
 
@@ -263,11 +263,11 @@ DEFAULT is the default fold display string for the environment."
                      default)))
 
 (defun czm-tex-fold-ref-display (label &rest _args)
-  "Fold display for a \ref{LABEL} macro."
+  "Fold display for a \\ref{LABEL} macro."
   (czm-tex-fold-ref-helper label "r"))
 
 (defun czm-tex-fold-eqref-display (label &rest _args)
-  "Fold display for a \eqref{LABEL} macro."
+  "Fold display for a \\eqref{LABEL} macro."
   (czm-tex-fold-ref-helper label "e"))
 
 (defun czm-tex-fold-href-display (_link name &rest _args)
