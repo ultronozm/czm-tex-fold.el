@@ -24,9 +24,13 @@ Here's the same file, but with the =czm-tex-fold.el= and [[https://github.com/ul
 #+attr_latex: :width 800px
 [[./img/pretty-file.png]]
 
-The label and reference numbers are extracted from the coresponding .aux file, which one can keep current by running =latexmk= continuously in the background (e.g., using [[https://github.com/ultronozm/czm-tex-compile.el][czm-tex-compile.el]]).
+The label and reference numbers are extracted from the corresponding .aux file, which one can keep current by running =latexmk= continuously in the background (e.g., using [[https://github.com/ultronozm/czm-tex-compile.el][czm-tex-compile.el]]).
 
-* Installation
+By default, the package folds dashes and quotes.  These features may be customized via =M-x customize-group czm-tex-fold=.
+
+The package provides convenience functions =czm-tex-fold-fold-section= and =czm-tex-fold-clearout-section= that do the expected thing (cf. [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][the AUCTeX manual]]).
+
+* Configuration
 This package requires [[https://www.gnu.org/software/auctex/manual/auctex/Installation.html#Installation][AUCTeX]] and [[https://github.com/ultronozm/czm-tex-util.el][czm-tex-util.el]], so install those first.
 
 Download this repository and install it using =M-x package-install-file=.  Then, add something like the following to your [[https://www.emacswiki.org/emacs/InitFile][init file]]:
@@ -47,8 +51,10 @@ Download this repository and install it using =M-x package-install-file=.  Then,
 Replace "~/doit/refs.bib" with the path to a .bib file containing the citations that you'd like to see folded.
 
 * Usage
-This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][instructions]] for the latter apply here.  I typically run =TeX-fold-buffer= (=C-c C-o C-b=) once when loading a file, and =TeX-fold-clearout-buffer= (=C-c C-o b=) when I want to turn off the folding.  Sometimes I also use the "section" variants defined above.
+This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][instructions]] for the latter apply here.  I typically run =TeX-fold-buffer= (=C-c C-o C-b=) once when loading a file, and =TeX-fold-clearout-buffer= (=C-c C-o b=) when I want to temporarily disable the folding.  Sometimes I also use the "section" variants (=C-c C-o C-s= and =C-c C-o s=).
 
 * Further customization
 It can be customized the same way that =tex-fold.el= can, by further tweaking the variable  =TeX-fold-macro-spec-list= (use =C-h v= to read its documentation).  Take a look at the source code for the function =czm-tex-fold-set-defaults= (=C-h C-f=) and at =M-x customize-group czm-tex-fold=.
 
+* Implementation
+This package is implemented in part via =:override= advice applied to the function =TeX-fold-hide-item=.  The modification is very mild, and unlikely to affect other use cases; see the source code for details.

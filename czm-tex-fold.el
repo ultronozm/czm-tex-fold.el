@@ -55,10 +55,6 @@
 ;; The package includes a couple miscellaneous features that I have
 ;; found useful in connection with `TeX-fold-mode'.
 ;;
-;; - Folding for dashes and quotes, and disabled folding for certain
-;; environments.  These are activated via the command
-;; `czm-tex-fold-install'.
-;;
 ;; - Section folding commands `czm-tex-fold-fold-section' and
 ;; `czm-tex-fold-clearout-section'.
 ;; 
@@ -103,9 +99,6 @@
   :type 'string
   :group 'czm-tex-fold)
 
-;; TODO should probably redesign this to be a major mode that you
-;; activate, rather than something that modifies stuff
-
 (defun czm-tex-fold-set-defaults ()
   "Set default values for `czm-tex-fold'."
   (interactive)
@@ -140,12 +133,24 @@
   :type '(repeat string)
   :group 'czm-tex-fold)
 
+(defcustom czm-tex-fold-fold-quotes t
+  "Whether to fold quotes."
+  :type 'boolean
+  :group 'czm-tex-fold)
+
+(defcustom czm-tex-fold-fold-dashes t
+  "Whether to fold dashes."
+  :type 'boolean
+  :group 'czm-tex-fold)
+
 (defun czm-tex-fold-install ()
   "Install `czm-tex-fold'."
   (interactive)
   (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
-  (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes)
-  (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes)
+  (when czm-tex-fold-fold-quotes
+    (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes))
+  (when czm-tex-fold-fold-dashes
+    (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes))
   (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold--clear-misc-overlays))
 
 (defun czm-tex-fold-uninstall ()
