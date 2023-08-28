@@ -213,7 +213,7 @@ label occurs on the same line; in that case, omit the period."
 TYPE should be either \='begin or \='end.  ARGS are the remaining
 {} arguments to the macro."
   (if (member env czm-tex-fold-exclude-list)
-      'ignore
+      'abort
     (let ((default-fold (if (eq type 'begin)
                             czm-tex-fold-begin-default
                           czm-tex-fold-end-default)))
@@ -392,7 +392,7 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
   "Hide a single macro or environment.
 That means, put respective properties onto overlay OV.
 
-OVERRIDE DIFFERENCE: if the function object returns `ignore',
+OVERRIDE DIFFERENCE: if the function object returns `abort',
 then the overlay is deleted."
   (let* ((ov-start (overlay-start ov))
          (ov-end (overlay-end ov))
@@ -417,7 +417,7 @@ then the overlay is deleted."
          (display-string (if (listp computed) (car computed) computed))
          ;; (face (when (listp computed) (cadr computed)))
          )
-    (if (eq computed 'ignore)
+    (if (eq computed 'abort)
         (progn (delete-overlay ov)
                t ; so that `TeX-fold-dwim' "gives up"
                )
