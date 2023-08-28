@@ -212,7 +212,8 @@ label occurs on the same line; in that case, omit the period."
   "Fold display string for \\begin{ENV} or \\end{ENV} macro.
 TYPE should be either \='begin or \='end.  ARGS are the remaining
 {} arguments to the macro."
-  (unless (member env czm-tex-fold-exclude-list)
+  (if (member env czm-tex-fold-exclude-list)
+      'ignore
     (let ((default-fold (if (eq type 'begin)
                             czm-tex-fold-begin-default
                           czm-tex-fold-end-default)))
@@ -391,8 +392,8 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
   "Hide a single macro or environment.
 That means, put respective properties onto overlay OV.
 
-OVERRIDE DIFFERENCE: if the function object returns nil, then the
-overlay is deleted."
+OVERRIDE DIFFERENCE: if the function object returns `ignore',
+then the overlay is deleted."
   (let* ((ov-start (overlay-start ov))
          (ov-end (overlay-end ov))
          (spec (overlay-get ov 'TeX-fold-display-string-spec))
@@ -407,16 +408,19 @@ overlay is deleted."
                          (unless (member (car arg) arg-list)
                            (setq arg-list (append arg-list (list (car arg)))))
                          (setq n (1+ n)))
-                       (condition-case nil
-                           (apply spec arg-list)
-                         (error nil))))
+                       (or (condition-case nil
+                               (apply spec arg-list)
+                             (error nil))
+                           "[Error: No content or function found]")))
                     (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
                            "[Error: No content found]"))))
          (display-string (if (listp computed) (car computed) computed))
          ;; (face (when (listp computed) (cadr computed)))
          )
-    (if (not computed)
-        (progn (delete-overlay ov) t)
+    (if (eq computed 'ignore)
+        (progn (delete-overlay ov)
+               t ; so that `TeX-fold-dwim' "gives up"
+               )
       ;; Do nothing if the overlay is empty.
       (when (and ov-start ov-end)
         ;; Cater for zero-length display strings.
