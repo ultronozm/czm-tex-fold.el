@@ -34,7 +34,7 @@
 ;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
 ;; this case) drawn from the accompanying .aux file.
 ;;
-;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]." 
+;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]" 
 ;;
 ;; - \end{theorem} is folded as "◼".
 ;;
@@ -42,7 +42,7 @@
 ;;
 ;; - \ref{thm:foo} and \eqref{eq:bar} are folded as "[1]".
 ;;
-;; - \cite[Section 1]{foo} is folded as "[NC84, Section 1]", using
+;; - \cite[Section 1]{foo} is folded as "[CN84, Section 1]", using
 ;; last name initials and 2-digit years.  The citation keys are
 ;; extracted from the bib file specified by the customization variable
 ;; `czm-tex-fold-bib-file' (rather than from the file being visited --
