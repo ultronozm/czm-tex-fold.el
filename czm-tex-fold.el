@@ -281,6 +281,11 @@ DEFAULT is the default fold display string for the environment."
                        (current-buffer))
     (buffer-string)))
 
+(defun czm-tex-fold--last-initial-of-name (name)
+  (when-let
+      ((index (string-match "[[:alpha:]]" name)))
+    (substring name index (1+ index))))
+
 (defun czm-tex-fold-bibtex-abbrev ()
   "Abbreviate the current bibtex entry.
 Use first letter of each author's last name and 2-digit year."
@@ -289,10 +294,7 @@ Use first letter of each author's last name and 2-digit year."
               (year (bibtex-text-in-field "year" entry)))
     (let* ((initials
             (mapconcat
-             (lambda (x)
-               (when-let
-                   ((index (string-match "[[:alpha:]]" x)))
-                 (substring x index (1+ index))))
+             #'czm-tex-fold--last-initial-of-name
              (string-split author " and ")))
            (year-XX (when year (substring year -2))))
       (concat initials year-XX))))
