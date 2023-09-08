@@ -282,9 +282,21 @@ DEFAULT is the default fold display string for the environment."
     (buffer-string)))
 
 (defun czm-tex-fold--last-initial-of-name (name)
-  (when-let
-      ((index (string-match "[[:alpha:]]" name)))
-    (substring name index (1+ index))))
+  "Return last initial of NAME.
+NAME should be a name in the format \"Last, First\" or \"First
+Last\".  Returns first alphanumeric letter before last space
+before first comma, if any."
+  (let* ((first-comma (string-match "," name))
+         (name (if first-comma
+                   (substring name 0 first-comma)
+                 name))
+         (last-space (string-match " " name))
+         (name (if last-space
+                   (substring name last-space)
+                 name)))
+    (when-let
+        ((index (string-match "[[:alpha:]]" name)))
+      (substring name index (1+ index)))))
 
 (defun czm-tex-fold-bibtex-abbrev ()
   "Abbreviate the current bibtex entry.
