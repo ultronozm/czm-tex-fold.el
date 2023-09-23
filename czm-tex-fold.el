@@ -159,7 +159,10 @@
     ((czm-tex-fold-standard-display . "□")
      ("proof"))
     ((czm-tex-fold-standard-display . "◼")
-     ("lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary")))
+     ("lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary"))
+    ((czm-tex-fold-block-display . "◼")
+     ("block"))
+    )
   "List of specifications for `czm-tex-fold-begin-display'.
 
 Each element of the list is a specification for a fold display.
@@ -206,6 +209,19 @@ label occurs on the same line; in that case, omit the period."
      (format "%s" uppercase)
      (when description
        (format " (%s)" description))
+     (if has-label " " "."))))
+
+(defun czm-tex-fold-block-display (env &rest args)
+  "Format fold display for tex environment \\begin{ENV}.
+Return \"Env.\" except or \"Env (Description).\" except when a
+label occurs on the same line; in that case, omit the period."
+  (let* ((props (text-properties-at 0 env))
+         (uppercase (caaar args))
+         (has-label (save-excursion (re-search-forward
+                                     "\\label{\\([^}]+\\)}" (line-end-position) t))))
+    (set-text-properties 0 (length uppercase) props uppercase)
+    (concat
+     (format "%s" uppercase)
      (if has-label " " "."))))
 
 (defun czm-tex-fold-helper-display (type env &rest args)
