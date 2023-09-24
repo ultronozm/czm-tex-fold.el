@@ -34,7 +34,7 @@
 ;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
 ;; this case) drawn from the accompanying .aux file.
 ;;
-;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]." 
+;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]" 
 ;;
 ;; - \end{theorem} is folded as "◼".
 ;;
@@ -42,7 +42,7 @@
 ;;
 ;; - \ref{thm:foo} and \eqref{eq:bar} are folded as "[1]".
 ;;
-;; - \cite[Section 1]{foo} is folded as "[NC84, Section 1]", using
+;; - \cite[Section 1]{foo} is folded as "[CN84, Section 1]", using
 ;; last name initials and 2-digit years.  The citation keys are
 ;; extracted from the bib file specified by the customization variable
 ;; `czm-tex-fold-bib-file' (rather than from the file being visited --
@@ -297,6 +297,23 @@ DEFAULT is the default fold display string for the environment."
                        (current-buffer))
     (buffer-string)))
 
+(defun czm-tex-fold--last-initial-of-name (name)
+  "Return last initial of NAME.
+NAME should be a name in the format \"Last, First\" or \"First
+Last\".  Returns first alphanumeric letter before last space
+before first comma, if any."
+  (let* ((first-comma (string-match "," name))
+         (name (if first-comma
+                   (substring name 0 first-comma)
+                 name))
+         (last-space (string-match " " name))
+         (name (if last-space
+                   (substring name last-space)
+                 name)))
+    (when-let
+        ((index (string-match "[[:alpha:]]" name)))
+      (substring name index (1+ index)))))
+
 (defun czm-tex-fold-bibtex-abbrev ()
   "Abbreviate the current bibtex entry.
 Use first letter of each author's last name and 2-digit year."
@@ -305,10 +322,7 @@ Use first letter of each author's last name and 2-digit year."
               (year (bibtex-text-in-field "year" entry)))
     (let* ((initials
             (mapconcat
-             (lambda (x)
-               (when-let
-                   ((index (string-match "[[:alpha:]]" x)))
-                 (substring x index (1+ index))))
+             #'czm-tex-fold--last-initial-of-name
              (string-split author " and ")))
            (year-XX (when year (substring year -2))))
       (concat initials year-XX))))
