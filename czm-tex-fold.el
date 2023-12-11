@@ -159,7 +159,7 @@
     ((czm-tex-fold-standard-display . "□")
      ("proof"))
     ((czm-tex-fold-standard-display . "◼")
-     ("lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary"))
+     ("abstract" "lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "ass" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary" "thm" "prop" "rem" "cor" "lem" "lemmy" "def" "defn" "ex" "exer" "conj" "not" "term" "prob" "ques" "ans" "conc" "crit" "sum"))
     ((czm-tex-fold-block-display . "◼")
      ("block"))
     )
@@ -194,19 +194,50 @@ applies."
       (setq n (1+ n)))
     (nreverse result)))
 
+(defcustom czm-tex-fold--environment-abbreviations
+  '(("thm" . "theorem")
+    ("prop" . "proposition")
+    ("rem" . "remark")
+    ("cor" . "corollary")
+    ("lem" . "lemma")
+    ("lemmy" . "lemma")
+    ("def" . "definition")
+    ("defn" . "definition")
+    ("ex" . "example")
+    ("exer" . "exercise")
+    ("conj" . "conjecture")
+    ("not" . "notation")
+    ("term" . "terminology")
+    ("prob" . "problem")
+    ("ques" . "question")
+    ("ans" . "answer")
+    ("conc" . "conclusion")
+    ("crit" . "criterion")
+    ("ass" . "assumption")
+    ("sum" . "summary"))
+  "Lookup table for LaTeX environment abbreviations."
+  :group 'czm-tex-fold
+  :type '(alist :key-type (string) :value-type (string)))
+
+(defun czm-tex-fold--full-latex-env-name (env-name)
+  "Fetch the full environment name identified by ENV-NAME.
+If there is no such abbreviation, return ENV-NAME as is."
+  (or (cdr (assoc env-name czm-tex-fold--environment-abbreviations)) env-name))
+
 (defun czm-tex-fold-standard-display (env &rest _args)
   "Format fold display for tex environment \\begin{ENV}.
 Return \"Env.\" except or \"Env (Description).\" except when a
 label occurs on the same line; in that case, omit the period."
   (let* ((props (text-properties-at 0 env))
-         (uppercase (concat (upcase (substring env 0 1))
-                            (substring env 1)))
+         (env-expanded (czm-tex-fold--full-latex-env-name env))
+         (env-uppercase (concat (upcase (substring env-expanded 0 1))
+                            (substring env-expanded 1)))
          (description (car (czm-tex-fold--optional-args)))
          (has-label (save-excursion (re-search-forward
                                      "\\label{\\([^}]+\\)}" (line-end-position) t))))
-    (set-text-properties 0 (length uppercase) props uppercase)
+    (set-text-properties 0 (length env-uppercase) props env-uppercase)
     (concat
-     (format "%s" uppercase)
+     (format "%s" env-uppercase)
      (when description
        (format " (%s)" description))
      (if has-label " " "."))))
@@ -336,20 +367,25 @@ Use first letter of each author's last name and 2-digit year."
           (mapcar (lambda (cite)
                     (let ((trimmed-cite (string-trim cite)))
                       (when-let* ((bib-file czm-tex-fold-bib-file)
-                                  (case-fold-search t)) ; else bibtex-parse-entry breaks
+                                  (case-fold-search t))
+                                        ; else bibtex-parse-entry breaks
                         (when (file-exists-p bib-file)
                           (with-current-buffer (find-file-noselect bib-file)
                             (save-excursion
                               (goto-char (point-min))
-                              (search-forward (concat "{" trimmed-cite ",") nil t)
-                              (save-excursion
-                                (bibtex-beginning-of-entry)
-                                (czm-tex-fold-bibtex-abbrev))))))))
+                              (if
+                                  (search-forward (concat "{" trimmed-cite ",")
+                                                  nil t)
+                                  (save-excursion
+                                    (bibtex-beginning-of-entry)
+                                    (czm-tex-fold-bibtex-abbrev))
+                                cite)))))))
                   (split-string text ",")))
          (joined-references (string-join references ", ")))
     (concat
      "["
-     (if (string-empty-p joined-references) "c" joined-references)
+     (if (string-empty-p joined-references)
+         "c" joined-references)
      (when citation
        (format ", %s" citation))
      "]")))
