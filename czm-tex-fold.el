@@ -34,7 +34,7 @@
 ;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
 ;; this case) drawn from the accompanying .aux file.
 ;;
-;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]" 
+;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]".
 ;;
 ;; - \end{theorem} is folded as "◼".
 ;;
@@ -162,8 +162,7 @@
     ((czm-tex-fold-standard-display . "◼")
      ("abstract" "lemma" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "note" "problem" "ass" "acknowledgment" "algorithm" "question" "answer" "claim" "conclusion" "criterion" "summary" "thm" "prop" "rem" "cor" "lem" "lemmy" "def" "defn" "ex" "exer" "conj" "not" "term" "prob" "ques" "ans" "conc" "crit" "sum"))
     ((czm-tex-fold-block-display . "◼")
-     ("block"))
-    )
+     ("block")))
   "List of specifications for `czm-tex-fold-begin-display'.
 
 Each element of the list is a specification for a fold display.
@@ -245,8 +244,9 @@ label occurs on the same line; in that case, omit the period."
 
 (defun czm-tex-fold-block-display (env &rest args)
   "Format fold display for tex environment \\begin{ENV}.
-Return \"Env.\" except or \"Env (Description).\" except when a
-label occurs on the same line; in that case, omit the period."
+Return \"Env.\" or \"Env (Description).\" except when a label
+occurs on the same line; in that case, omit the period.  ARGS is
+nested list whose caaar is the block label."
   (let* ((props (text-properties-at 0 env))
          (uppercase (caaar args))
          (has-label (save-excursion (re-search-forward
@@ -307,7 +307,7 @@ DEFAULT is the default fold display string for the environment."
   "Fold display for a \\href{LINK}{NAME} macro."
   (format "[%s]" (or name "href")))
 
-(defun czm-tex-fold-texorpdfstring (tex plain &rest _args)
+(defun czm-tex-fold-texorpdfstring (tex _plain &rest _args)
   "Fold display for a \\texorpdfstring{TEX}{PLAIN} macro."
   (format "%s" tex))
 
