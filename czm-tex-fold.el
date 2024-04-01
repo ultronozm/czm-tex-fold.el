@@ -121,6 +121,11 @@
   :type 'boolean
   :group 'czm-tex-fold)
 
+(defcustom czm-tex-fold-fold-verbs t
+  "Whether to fold `\\verb|...|' patterns."
+  :type 'boolean
+  :group 'czm-tex-fold)
+
 (defun czm-tex-fold-install ()
   "Install `czm-tex-fold'."
   (interactive)
@@ -129,6 +134,8 @@
     (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes))
   (when czm-tex-fold-fold-dashes
     (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes))
+  (when czm-tex-fold-fold-verbs
+    (advice-add 'TeX-fold-region :after #'czm-tex-fold-verbs))
   (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold--clear-misc-overlays))
 
 (defun czm-tex-fold-uninstall ()
@@ -137,6 +144,7 @@
   (advice-remove 'TeX-fold-hide-item #'czm-tex-fold--override-hide-item)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-quotes)
   (advice-remove 'TeX-fold-region #'czm-tex-fold-dashes)
+  (advice-remove 'TeX-fold-region #'czm-tex-fold-verbs)
   (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold--clear-misc-overlays))
 
 (defcustom czm-tex-fold-begin-default
@@ -421,6 +429,16 @@ Use first letter of each author's last name and 2-digit year."
             (match-end (match-end 0))
             (replacement "–"))
         (czm-tex-fold--create-misc-overlay match-start match-end replacement)))))
+
+(defun czm-tex-fold-verbs (start end)
+  "Fold `\\verb|...|' in between START and END using overlays."
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward "\\\\verb\\(.\\)\\([^\\1]*\\)\\1" end t)
+      (let ((verb-start (match-beginning 0))
+            (verb-end (match-end 0))
+            (replacement (match-string 2)))
+        (czm-tex-fold--create-misc-overlay verb-start verb-end replacement)))))
 
 (defun czm-tex-fold--create-misc-overlay (start end replacement)
   "Create an overlay to fold quotes between START and END with REPLACEMENT."
