@@ -431,7 +431,7 @@ Use first letter of each author's last name and 2-digit year."
         (czm-tex-fold--create-misc-overlay match-start match-end replacement)))))
 
 (defvar czm-tex-fold--verb-regex
-  "\\\\verb\\(.\\)\\([^\\1]*\\)\\1")
+  "\\\\verb|\\([^|]*\\)|")
 
 (defun czm-tex-fold-verbs (start end)
   "Fold `\\verb|...|' in between START and END using overlays."
@@ -440,7 +440,7 @@ Use first letter of each author's last name and 2-digit year."
     (while (re-search-forward czm-tex-fold--verb-regex end t)
       (let ((verb-start (match-beginning 0))
             (verb-end (match-end 0))
-            (replacement (match-string 2)))
+            (replacement (match-string 1)))
         (czm-tex-fold--create-misc-overlay verb-start verb-end replacement)))))
 
 (defun czm-tex-fold--create-misc-overlay (start end replacement)
