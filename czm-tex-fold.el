@@ -130,11 +130,7 @@
   "Install `czm-tex-fold'."
   (interactive)
 
-  ;; The following is not needed in sufficient recent versions of
-  ;; auctex, see
-  ;; https://git.savannah.gnu.org/cgit/auctex.git/commit/?id=c290376d5d5b3834939fd38cdcd60678291ca60e
-
-  ;; (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
+  (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
 
   (when czm-tex-fold-fold-quotes
     (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes))
@@ -487,14 +483,11 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
           (end (mark)))
       (TeX-fold-clearout-region start end))))
 
-;; This next function is no longer used and should eventually be deleted.
+;; https://git.savannah.gnu.org/cgit/auctex.git/commit/?id=c290376d5d5b3834939fd38cdcd60678291ca60e
 
 (defun czm-tex-fold--override-hide-item (ov)
   "Hide a single macro or environment.
-That means, put respective properties onto overlay OV.
-
-OVERRIDE DIFFERENCE: if the function object returns `abort',
-then the overlay is deleted."
+That means, put respective properties onto overlay OV."
   (let* ((ov-start (overlay-start ov))
          (ov-end (overlay-end ov))
          (spec (overlay-get ov 'TeX-fold-display-string-spec))
@@ -510,7 +503,9 @@ then the overlay is deleted."
                            (setq arg-list (append arg-list (list (car arg)))))
                          (setq n (1+ n)))
                        (or (condition-case nil
-                               (apply spec arg-list)
+                               (save-excursion
+                                 (goto-char ov-start)
+                                 (apply spec arg-list))
                              (error nil))
                            "[Error: No content or function found]")))
                     (t (or (TeX-fold-macro-nth-arg spec ov-start ov-end)
@@ -518,7 +513,12 @@ then the overlay is deleted."
          (display-string (if (listp computed) (car computed) computed))
          ;; (face (when (listp computed) (cadr computed)))
          )
+
     (if (eq computed 'abort)
+        ;; Abort folding if computed result is the symbol `abort'.
+        ;; This allows programmatic customization.
+        ;; Suggested by Paul Nelson <ultrono@gmail.com>.
+        ;; <URL:https://lists.gnu.org/r/auctex/2023-08/msg00026.html>
         (progn (delete-overlay ov)
                t ; so that `TeX-fold-dwim' "gives up"
                )
