@@ -5,7 +5,7 @@
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.0
 ;; URL: https://github.com/ultronozm/czm-tex-fold.el
-;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.0"))
+;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.0") (auctex "13.1"))
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -28,9 +28,9 @@
 ;; basic idea is illustrated as follows:
 ;;
 ;; - \begin{theorem} is folded as "Theorem."
-;; 
+;;
 ;; - \begin{theorem}[Foo] is folded as "Theorem (Foo)."
-;; 
+;;
 ;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
 ;; this case) drawn from the accompanying .aux file.
 ;;
@@ -129,7 +129,13 @@
 (defun czm-tex-fold-install ()
   "Install `czm-tex-fold'."
   (interactive)
-  (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
+
+  ;; The following is not needed in sufficient recent versions of
+  ;; auctex, see
+  ;; https://git.savannah.gnu.org/cgit/auctex.git/commit/?id=c290376d5d5b3834939fd38cdcd60678291ca60e
+
+  ;; (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
+
   (when czm-tex-fold-fold-quotes
     (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes))
   (when czm-tex-fold-fold-dashes
@@ -480,6 +486,8 @@ and `TeX-fold-math-spec-list', and environments in `TeX-fold-env-spec-list'."
     (let ((start (point))
           (end (mark)))
       (TeX-fold-clearout-region start end))))
+
+;; This next function is no longer used and should eventually be deleted.
 
 (defun czm-tex-fold--override-hide-item (ov)
   "Hide a single macro or environment.
