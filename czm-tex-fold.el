@@ -107,47 +107,23 @@
 
 (defcustom czm-tex-fold-exclude-list
   '("equation" "equation*" "align" "align*" "multline" "multline*")
-  "List of types to be excluded by the advice for `TeX-fold-hide-item'."
+  "List of types to be excluded by `czm-tex-fold-helper-display'."
   :type '(repeat string)
-  :group 'czm-tex-fold)
-
-(defcustom czm-tex-fold-fold-quotes t
-  "Whether to fold quotes."
-  :type 'boolean
-  :group 'czm-tex-fold)
-
-(defcustom czm-tex-fold-fold-dashes t
-  "Whether to fold dashes."
-  :type 'boolean
-  :group 'czm-tex-fold)
-
-(defcustom czm-tex-fold-fold-verbs t
-  "Whether to fold `\\verb|...|' patterns."
-  :type 'boolean
   :group 'czm-tex-fold)
 
 (defun czm-tex-fold-install ()
   "Install `czm-tex-fold'."
   (interactive)
-
-  (advice-add 'TeX-fold-hide-item :override #'czm-tex-fold--override-hide-item)
-
-  (when czm-tex-fold-fold-quotes
-    (advice-add 'TeX-fold-region :after #'czm-tex-fold-quotes))
-  (when czm-tex-fold-fold-dashes
-    (advice-add 'TeX-fold-region :after #'czm-tex-fold-dashes))
-  (when czm-tex-fold-fold-verbs
-    (advice-add 'TeX-fold-region :after #'czm-tex-fold-verbs))
-  (advice-add 'TeX-fold-clearout-buffer :after #'czm-tex-fold--clear-misc-overlays))
+  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes)
+  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes)
+  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs))
 
 (defun czm-tex-fold-uninstall ()
   "Uninstall `czm-tex-fold'."
   (interactive)
-  (advice-remove 'TeX-fold-hide-item #'czm-tex-fold--override-hide-item)
-  (advice-remove 'TeX-fold-region #'czm-tex-fold-quotes)
-  (advice-remove 'TeX-fold-region #'czm-tex-fold-dashes)
-  (advice-remove 'TeX-fold-region #'czm-tex-fold-verbs)
-  (advice-remove 'TeX-fold-clearout-buffer #'czm-tex-fold--clear-misc-overlays))
+  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes)
+  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes)
+  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs))
 
 (defcustom czm-tex-fold-begin-default
   "↴"
@@ -450,11 +426,7 @@ Use first letter of each author's last name and 2-digit year."
   (let ((overlay (make-overlay start end)))
     (overlay-put overlay 'display replacement)
     (overlay-put overlay 'evaporate t) ; Remove the overlay when the text is modified.
-    (overlay-put overlay 'czm-tex-fold-misc t)))
-
-(defun czm-tex-fold--clear-misc-overlays ()
-  "Remove all quote overlays in the current buffer."
-  (remove-overlays nil nil 'czm-tex-fold-misc t))
+    (overlay-put overlay 'category 'TeX-fold)))
 
 ;; miscellaneous: fold the contents of a section.  These could have
 ;; just as well been included in `tex-fold.el'.

@@ -26,7 +26,7 @@ Here's the same file, but with the =czm-tex-fold.el= and [[https://github.com/ul
 
 The label and reference numbers are extracted from the corresponding .aux file, which one can keep current by running =latexmk= continuously in the background (e.g., using [[https://github.com/ultronozm/czm-tex-compile.el][czm-tex-compile.el]]).
 
-By default, the package folds dashes and quotes.  These features may be customized via =M-x customize-group czm-tex-fold=.
+The package also folds dashes, quotes and inline verbatim.
 
 The package provides convenience functions =czm-tex-fold-fold-section= and =czm-tex-fold-clearout-section= that do the expected thing (cf. [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][the AUCTeX manual]]).
 
@@ -59,5 +59,3 @@ This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/softw
 * Further customization
 It can be customized the same way that =tex-fold.el= can, by further tweaking the variable  =TeX-fold-macro-spec-list= (use =C-h v= to read its documentation).  Take a look at the source code for the function =czm-tex-fold-set-defaults= (=C-h C-f=) and at =M-x customize-group czm-tex-fold=.
 
-* Implementation
-This package is implemented in part via =:override= advice applied to the function =TeX-fold-hide-item=.  The modification is very mild, and unlikely to affect other use cases; see the source code for details.  Also, it [[https://lists.gnu.org/archive/html/auctex/2023-08/msg00029.html][has recently been merged]] into the master branch of AUCTeX, so the advice should eventually be unnecessary.
