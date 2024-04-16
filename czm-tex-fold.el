@@ -389,8 +389,24 @@ Use first letter of each author's last name and 2-digit year."
     (while (re-search-forward "``\\|''" end t)
       (let ((quote-start (match-beginning 0))
             (quote-end (match-end 0))
-            (replacement (if (string= (match-string 0) "``") "“" "”")))
-        (czm-tex-fold--create-misc-overlay quote-start quote-end replacement)))))
+            (str (if (string= (match-string 0) "``") "“" "”")))
+        (when (save-excursion
+                (goto-char quote-start)
+                (= (let ((math-faces '(tex-math font-latex-math-face))
+                         (face (plist-get (text-properties-at (point))
+                                          'face)))
+                     (cond
+                      ((memq face math-faces)
+                       1)
+                      ((listp face)
+                       (let ((total 0))
+                         (dolist (f face)
+                           (when (memq f math-faces)
+                             (setq total (1+ total))))
+                         total))
+                      (t 0)))
+                   0))
+          (czm-tex-fold--create-misc-overlay quote-start quote-end str str))))))
 
 (defun czm-tex-fold-dashes (start end)
   "Fold dashes in the region between START and END using overlays."
@@ -399,14 +415,14 @@ Use first letter of each author's last name and 2-digit year."
     (while (re-search-forward "\\b\\(---\\)\\b" end t)
       (let ((match-start (match-beginning 0))
             (match-end (match-end 0))
-            (replacement "—"))
-        (czm-tex-fold--create-misc-overlay match-start match-end replacement)))
+            (str "—"))
+        (czm-tex-fold--create-misc-overlay match-start match-end str str)))
     (goto-char start)
     (while (re-search-forward "\\b\\(--\\)\\b" end t)
       (let ((match-start (match-beginning 0))
             (match-end (match-end 0))
-            (replacement "–"))
-        (czm-tex-fold--create-misc-overlay match-start match-end replacement)))))
+            (str "–"))
+        (czm-tex-fold--create-misc-overlay match-start match-end str str)))))
 
 (defvar czm-tex-fold--verb-regex
   "\\\\verb|\\([^|]*\\)|")
@@ -418,15 +434,21 @@ Use first letter of each author's last name and 2-digit year."
     (while (re-search-forward czm-tex-fold--verb-regex end t)
       (let ((verb-start (match-beginning 0))
             (verb-end (match-end 0))
-            (replacement (match-string 1)))
-        (czm-tex-fold--create-misc-overlay verb-start verb-end replacement)))))
+            (str (match-string 1))\
+            (spec (lambda (&rest args)
+                    (when (looking-at czm-tex-fold--verb-regex)
+                      (let ((verb-start (match-beginning 0))
+                            (verb-end (match-end 0)))
+                        (match-string 1))))))
+        (czm-tex-fold--create-misc-overlay verb-start verb-end str spec)))))
 
-(defun czm-tex-fold--create-misc-overlay (start end replacement)
-  "Create an overlay to fold quotes between START and END with REPLACEMENT."
-  (let ((overlay (make-overlay start end)))
-    (overlay-put overlay 'display replacement)
-    (overlay-put overlay 'evaporate t) ; Remove the overlay when the text is modified.
-    (overlay-put overlay 'category 'TeX-fold)))
+(defun czm-tex-fold--create-misc-overlay (start end str spec)
+  "Create an overlay to fold quotes between START and END with STR."
+  (let ((ov (make-overlay start end)))
+    (overlay-put ov 'display str)
+    (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
+    (overlay-put ov 'category 'TeX-fold)
+    (overlay-put ov 'TeX-fold-display-string-spec spec)))
 
 ;; miscellaneous: fold the contents of a section.  These could have
 ;; just as well been included in `tex-fold.el'.
