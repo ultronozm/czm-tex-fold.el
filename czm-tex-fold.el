@@ -434,16 +434,14 @@ Use first letter of each author's last name and 2-digit year."
     (while (re-search-forward czm-tex-fold--verb-regex end t)
       (let ((verb-start (match-beginning 0))
             (verb-end (match-end 0))
-            (str (match-string 1))\
-            (spec (lambda (&rest args)
+            (str (match-string 1))
+            (spec (lambda (&rest _args)
                     (when (looking-at czm-tex-fold--verb-regex)
-                      (let ((verb-start (match-beginning 0))
-                            (verb-end (match-end 0)))
-                        (match-string 1))))))
+                      (match-string 1)))))
         (czm-tex-fold--create-misc-overlay verb-start verb-end str spec)))))
 
 (defun czm-tex-fold--create-misc-overlay (start end str spec)
-  "Create an overlay to fold quotes between START and END with STR."
+  "Create an overlay to fold quotes between START and END with STR and SPEC."
   (let ((priority (TeX-overlay-prioritize start end))
         (ov (make-overlay start end)))
     (overlay-put ov 'category 'TeX-fold)
