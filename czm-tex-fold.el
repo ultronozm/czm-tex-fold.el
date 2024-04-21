@@ -444,10 +444,12 @@ Use first letter of each author's last name and 2-digit year."
 
 (defun czm-tex-fold--create-misc-overlay (start end str spec)
   "Create an overlay to fold quotes between START and END with STR."
-  (let ((ov (make-overlay start end)))
-    (overlay-put ov 'display str)
-    (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
+  (let ((priority (TeX-overlay-prioritize start end))
+        (ov (make-overlay start end)))
     (overlay-put ov 'category 'TeX-fold)
+    (overlay-put ov 'priority priority)
+    (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
+    (overlay-put ov 'display str)
     (overlay-put ov 'TeX-fold-display-string-spec spec)))
 
 ;; miscellaneous: fold the contents of a section.  These could have
