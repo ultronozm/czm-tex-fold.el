@@ -5,7 +5,7 @@
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.0
 ;; URL: https://github.com/ultronozm/czm-tex-fold.el
-;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.0") (auctex "13.1"))
+;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.0") (auctex "14.0.5"))
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -51,11 +51,6 @@
 ;; To use this package, run the commands `czm-tex-fold-set-defaults'
 ;; and `czm-tex-fold-install', then use `TeX-fold-mode' as usual
 ;; (restarting it if it was started after running the setup commands).
-;;
-;; As a miscellaneous feature, this package includes the section
-;; folding commands `czm-tex-fold-fold-section' and
-;; `czm-tex-fold-clearout-section'.
-
 
 ;;; Code:
 
