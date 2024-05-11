@@ -350,8 +350,6 @@ Use first letter of each author's last name and 2-digit year."
            (year-XX (when year (substring year -2))))
       (concat initials year-XX))))
 
-
-
 (defun czm-tex-fold-cite-display (text &rest _args)
   "Fold display for a \\cite{TEXT} macro."
   (let* ((citation (car (czm-tex-fold--optional-args)))
