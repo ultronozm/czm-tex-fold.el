@@ -142,7 +142,7 @@
     ((czm-tex-fold-standard-display . "□")
      ("proof"))
     ((czm-tex-fold-standard-display . "◼")
-     ("abstract" "lemma" "lemma*" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "fact" "note" "problem" "ass" "acknowledgment" "algorithm" "question" "assumptions" "answer" "claim" "conclusion" "criterion" "summary" "thm" "prop" "rem" "cor" "lem" "lemmy" "def" "defn" "ex" "exer" "conj" "not" "term" "prob" "ques" "ans" "conc" "crit" "sum"))
+     ("abstract" "lemma" "lemma*" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "fact" "note" "problem" "ass" "acknowledgment" "algorithm" "question" "questions" "assumptions" "answer" "claim" "conclusion" "criterion" "summary" "thm" "prop" "rem" "cor" "lem" "lemmy" "def" "defn" "ex" "exer" "conj" "not" "term" "prob" "ques" "ans" "conc" "crit" "sum" "commentary"))
     ((czm-tex-fold-block-display . "◼")
      ("block")))
   "List of specifications for `czm-tex-fold-begin-display'.
