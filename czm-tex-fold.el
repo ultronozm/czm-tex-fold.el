@@ -213,7 +213,7 @@ label occurs on the same line; in that case, omit the period."
   (let* ((props (text-properties-at 0 env))
          (env-expanded (czm-tex-fold--full-latex-env-name env))
          (env-uppercase (concat (upcase (substring env-expanded 0 1))
-                            (substring env-expanded 1)))
+                                (substring env-expanded 1)))
          (description (car (czm-tex-fold--optional-args)))
          (has-label (save-excursion (re-search-forward
                                      "\\label{\\([^}]+\\)}" (line-end-position) t))))
