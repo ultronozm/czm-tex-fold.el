@@ -5,7 +5,7 @@
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
 ;; Version: 0.0
 ;; URL: https://github.com/ultronozm/czm-tex-fold.el
-;; Package-Requires: ((emacs "29.1") (czm-tex-util "0.0") (auctex "14.0.5"))
+;; Package-Requires: ((emacs "29.1") (auctex-label-numbers "0.2") (auctex "14.0.6"))
 ;; Keywords: tex
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -57,8 +57,8 @@
 (require 'latex)
 (require 'tex-fold)
 (require 'bibtex)
-(require 'cl-lib)
-(require 'czm-tex-util)
+(require 'auctex-label-numbers)
+(require 'reftex)
 
 (defgroup czm-tex-fold nil
   "Customizations for folding LaTeX documents."
@@ -243,25 +243,27 @@ nested list whose caaar is the block label."
 
 (defun czm-tex-fold-helper-display (type env &rest args)
   "Fold display string for \\begin{ENV} or \\end{ENV} macro.
-TYPE should be either \='begin or \='end.  ARGS are the remaining
-{} arguments to the macro."
+TYPE should be either `begin' or `end'.  ARGS are the remaining {}
+arguments to the macro."
   (if (member env czm-tex-fold-exclude-list)
       'abort
     (let ((default-fold (if (eq type 'begin)
                             czm-tex-fold-begin-default
                           czm-tex-fold-end-default)))
-      (cl-dolist (spec czm-tex-fold-environment-delimiter-spec-list
-                       default-fold)
-        (let* ((display-rule (car spec))
-               (display-string
-                (if (eq type 'begin)
-                    (car display-rule)
-                  (cdr display-rule)))
-               (envs (cadr spec)))
-          (when (member env envs)
-            (if (functionp display-string)
-                (cl-return (funcall display-string env args))
-              (cl-return display-string))))))))
+      (catch 'result
+        (dolist (spec czm-tex-fold-environment-delimiter-spec-list)
+          (let* ((display-rule (car spec))
+                 (display-string
+                  (if (eq type 'begin)
+                      (car display-rule)
+                    (cdr display-rule)))
+                 (envs (cadr spec)))
+            (when (member env envs)
+              (throw 'result
+                     (if (functionp display-string)
+                         (funcall display-string env args)
+                       display-string)))))
+        default-fold))))
 
 (defun czm-tex-fold-begin-display (env &rest args)
   "Fold display for a \\begin{ENV}.
@@ -277,7 +279,7 @@ ARGS is the list of {} arguments supplied to the macro."
   "Helper function for `czm-tex-fold-ref-display'.
 LABEL is the label name.
 DEFAULT is the default fold display string for the environment."
-  (format "[%s]" (or (czm-tex-util-get-label-number label)
+  (format "[%s]" (or (auctex-label-numbers-label-to-number label)
                      default)))
 
 (defun czm-tex-fold-ref-display (label &rest _args)
