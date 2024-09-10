@@ -85,6 +85,7 @@
      (czm-tex-fold-eqref-display ("eqref"))
      (czm-tex-fold-href-display ("href"))
      (czm-tex-fold-texorpdfstring ("texorpdfstring"))
+     (czm-tex-fold-textnormal ("textnormal"))
      ("[i]" ("index" "glossary"))
      ("[1]:||*" ("item"))
      ("..." ("dots"))
@@ -291,6 +292,10 @@ DEFAULT is the default fold display string for the environment."
 
 (defun czm-tex-fold-texorpdfstring (tex _plain &rest _args)
   "Fold display for a \\texorpdfstring{TEX}{PLAIN} macro."
+  (format "%s" tex))
+
+(defun czm-tex-fold-textnormal (tex &rest _args)
+  "Fold display for a \\textnormal{TEX} macro."
   (format "%s" tex))
 
 (defun czm-tex-fold-label-display (label &rest _args)
