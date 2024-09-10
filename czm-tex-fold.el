@@ -231,9 +231,11 @@ Return \"Env.\" or \"Env (Description).\" except when a label
 occurs on the same line; in that case, omit the period.  ARGS is
 nested list whose caaar is the block label."
   (let* ((props (text-properties-at 0 env))
+         (label-re
+          (concat "\\(?:" (mapconcat #'identity reftex-label-regexps "\\|") "\\)"))
          (uppercase (caaar args))
          (has-label (save-excursion (re-search-forward
-                                     "\\label{\\([^}]+\\)}" (line-end-position) t))))
+                                     label-re (line-end-position) t))))
     (set-text-properties 0 (length uppercase) props uppercase)
     (concat
      (format "%s" uppercase)
