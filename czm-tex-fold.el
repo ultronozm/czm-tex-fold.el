@@ -85,16 +85,14 @@
   (setq
    TeX-fold-macro-spec-list
    '(("[f]" ("footnote" "marginpar"))
-     (czm-tex-fold-label-display ("label"))
      (czm-tex-fold-cite-display ("cite"))
      (czm-tex-fold-textcolor-display ("textcolor"))
      (czm-tex-fold-alert-display ("alert"))
+     (auctex-label-numbers-ref-display ("ref"))
+     (auctex-label-numbers-eqref-display ("eqref"))
+     (auctex-label-numbers-label-display ("label"))
      ("[r]" ("pageref" "footref"))
-     (czm-tex-fold-ref-display ("ref"))
-     (czm-tex-fold-eqref-display ("eqref"))
      (czm-tex-fold-href-display ("href"))
-     (czm-tex-fold-texorpdfstring ("texorpdfstring"))
-     (czm-tex-fold-textnormal ("textnormal"))
      ("[i]" ("index" "glossary"))
      ("[1]:||*" ("item"))
      ("..." ("dots"))
@@ -278,36 +276,6 @@ ARGS is the list of {} arguments supplied to the macro."
 ARGS is the list of {} arguments supplied to the macro."
   (czm-tex-fold-helper-display 'end env args))
 
-(defun czm-tex-fold-ref-helper (label default)
-  "Helper function for `czm-tex-fold-ref-display'.
-LABEL is the label name.
-DEFAULT is the default fold display string for the environment."
-  (format "[%s]" (or (auctex-label-numbers-label-to-number label)
-                     default)))
-
-(defun czm-tex-fold-ref-display (label &rest _args)
-  "Fold display for a \\ref{LABEL} macro."
-  (czm-tex-fold-ref-helper label "r"))
-
-(defun czm-tex-fold-eqref-display (label &rest _args)
-  "Fold display for a \\eqref{LABEL} macro."
-  (czm-tex-fold-ref-helper label "e"))
-
-(defun czm-tex-fold-href-display (_link name &rest _args)
-  "Fold display for a \\href{LINK}{NAME} macro."
-  (format "[%s]" (or name "href")))
-
-(defun czm-tex-fold-texorpdfstring (tex _plain &rest _args)
-  "Fold display for a \\texorpdfstring{TEX}{PLAIN} macro."
-  (format "%s" tex))
-
-(defun czm-tex-fold-textnormal (tex &rest _args)
-  "Fold display for a \\textnormal{TEX} macro."
-  (format "%s" tex))
-
-(defun czm-tex-fold-label-display (label &rest _args)
-  "Fold display for a \\label{LABEL} macro."
-  (czm-tex-fold-ref-helper label "l"))
 ;;; Colored text
 
 (defun czm-tex-fold-textcolor-display (color text &rest _args)
