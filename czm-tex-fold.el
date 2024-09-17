@@ -73,34 +73,28 @@
   "Customizations for folding LaTeX documents."
   :group 'tex)
 
-(defcustom czm-tex-fold-bib-file
-  nil
-  "BibTeX file from which to extract citation keys."
-  :type 'string
-  :group 'czm-tex-fold)
-
 (defun czm-tex-fold-set-defaults ()
   "Set default values for `czm-tex-fold'."
   (interactive)
   (setq
    TeX-fold-macro-spec-list
-   '(("[f]" ("footnote" "marginpar"))
-     (czm-tex-fold-cite-display ("cite"))
+   '((czm-tex-fold-begin-display ("begin"))
+     (czm-tex-fold-end-display ("end"))
      (czm-tex-fold-textcolor-display ("textcolor"))
      (czm-tex-fold-alert-display ("alert"))
+     (czm-tex-fold-cite-display ("cite"))
      (auctex-label-numbers-ref-display ("ref"))
      (auctex-label-numbers-eqref-display ("eqref"))
      (auctex-label-numbers-label-display ("label"))
+     ("[f]" ("footnote" "marginpar"))
      ("[r]" ("pageref" "footref"))
-     (czm-tex-fold-href-display ("href"))
      ("[i]" ("index" "glossary"))
      ("[1]:||*" ("item"))
+     ("[{2}]||[href]" ("href"))
      ("..." ("dots"))
      ("(C)" ("copyright"))
      ("(R)" ("textregistered"))
      ("TM" ("texttrademark"))
-     (czm-tex-fold-begin-display ("begin"))
-     (czm-tex-fold-end-display ("end"))
      ("🌱" ("documentclass"))
      ("🌌" ("input"))
      ("📚" ("bibliography"))
@@ -330,6 +324,13 @@ Use first letter of each author's last name and 2-digit year."
 
 (defun czm-tex-fold-cite-display (text &rest _args)
   "Fold display for a \\cite{TEXT} macro."
+(defcustom czm-tex-fold-bib-file nil
+  "Backup BibTeX file from which to extract citation keys.
+This is used in case for the file being visited, reftex can't find the
+citation keys.  If nil, no backup is used."
+  :type 'string
+  :group 'czm-tex-fold)
+
   (let* ((citation (car (czm-tex-fold--optional-args)))
          (references
           (mapcar (lambda (cite)
