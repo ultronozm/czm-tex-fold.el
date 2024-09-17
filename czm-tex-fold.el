@@ -48,9 +48,18 @@
 ;; `czm-tex-fold-bib-file' (rather than from the file being visited --
 ;; indeed, this package works fine in non-file buffers).
 ;;
-;; To use this package, run the commands `czm-tex-fold-set-defaults'
-;; and `czm-tex-fold-install', then use `TeX-fold-mode' as usual
-;; (restarting it if it was started after running the setup commands).
+;; Folding support is also provided for dashes, quotes and verbatim
+;; environments.
+;;
+;; To use this package, add the following to your config:
+;;
+;; (with-eval-after-load 'latex
+;;   (czm-tex-fold-set-defaults)
+;;   (add-hook 'LaTeX-mode-hook #'czm-tex-fold-misc-mode))
+;;
+;; Then use `TeX-fold-mode' as usual (restarting it if it was started
+;; after running the setup commands).  See the README for further
+;; information.
 
 ;;; Code:
 
@@ -100,20 +109,6 @@
      ("📖" ("bibliographystyle"))
      ("✅" ("leanok"))
      (1 ("section" "part" "chapter" "subsection" "subsubsection" "paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup" "underline")))))
-
-(defun czm-tex-fold-install ()
-  "Install `czm-tex-fold'."
-  (interactive)
-  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes)
-  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes)
-  (add-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs))
-
-(defun czm-tex-fold-uninstall ()
-  "Uninstall `czm-tex-fold'."
-  (interactive)
-  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes)
-  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes)
-  (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs))
 
 (defcustom czm-tex-fold-begin-default
   "↴"
@@ -458,6 +453,19 @@ Ignores quotes within math environments."
     (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
     (overlay-put ov 'display str)
     (overlay-put ov 'TeX-fold-display-string-spec spec)))
+(define-minor-mode czm-tex-fold-misc-mode
+  "Minor mode for folding miscellaneous LaTeX constructs.
+This includes quotes, dashes, and verbatim environments."
+  :lighter nil
+  :group 'czm-tex-fold
+  (if czm-tex-fold-misc-mode
+      (progn
+        (add-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes nil t)
+        (add-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes nil t)
+        (add-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs nil t))
+    (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes t)
+    (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-dashes t)
+    (remove-hook 'TeX-fold-region-functions #'czm-tex-fold-verbs t)))
 
 (provide 'czm-tex-fold)
 ;;; czm-tex-fold.el ends here

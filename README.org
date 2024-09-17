@@ -38,13 +38,13 @@ Download this repository, install using =M-x package-install-file= (or package-v
   :after latex
   :config
   (czm-tex-fold-set-defaults)
-  (czm-tex-fold-install)
   :custom
   (czm-tex-fold-bib-file "~/doit/refs.bib")
   :hook
   (LaTeX-mode . tex-fold-mode))
 #+end_src
 Replace "~/doit/refs.bib" with the path to a .bib file containing the citations that you'd like to see folded.
+  (LaTeX-mode . czm-tex-fold-misc-mode) ; dashes, quotes, verbatim
 
 Note: I use =:demand= here so that the package is loaded before I visit any TeX buffers, but you should be sure to load AUCTeX first.
 
