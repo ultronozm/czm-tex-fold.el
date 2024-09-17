@@ -225,11 +225,11 @@ label occurs on the same line; in that case, omit the period."
        (format " (%s)" description))
      (if has-label " " "."))))
 
-(defun czm-tex-fold-block-display (env &rest args)
-  "Format fold display for tex environment \\begin{ENV}.
-Return \"Env.\" or \"Env (Description).\" except when a label
-occurs on the same line; in that case, omit the period.  ARGS is
-nested list whose caaar is the block label."
+(defun czm-tex-fold-format-titled-block (env &rest args)
+  "Format fold display for beamer block environments.
+ENV is ignored.  ARGS is a nested list where (caaar args) is expected to
+be the capitalized block title.  Returns the capitalized block title,
+followed by a period unless a \\label command is found on the same line."
   (let* ((props (text-properties-at 0 env))
          (label-re
           (concat "\\(?:" (mapconcat #'identity reftex-label-regexps "\\|") "\\)"))
@@ -242,9 +242,13 @@ nested list whose caaar is the block label."
      (if has-label " " "."))))
 
 (defun czm-tex-fold-helper-display (type env &rest args)
-  "Fold display string for \\begin{ENV} or \\end{ENV} macro.
-TYPE should be either `begin' or `end'.  ARGS are the remaining {}
-arguments to the macro."
+  "Generate fold display string for \\begin{ENV} or \\end{ENV} macro.
+TYPE should be either `begin' or `end'.
+ENV is the environment name.
+ARGS are the remaining {} arguments to the macro.
+Returns `abort' if ENV is in `czm-tex-fold-exclude-list',
+otherwise returns a string or function based on
+`czm-tex-fold-environment-delimiter-spec-list'."
   (if (member env czm-tex-fold-exclude-list)
       'abort
     (let ((default-fold (if (eq type 'begin)
@@ -326,9 +330,9 @@ DEFAULT is the default fold display string for the environment."
 
 (defun czm-tex-fold--last-initial-of-name (name)
   "Return last initial of NAME.
-NAME should be a name in the format \"Last, First\" or \"First
-Last\".  Returns first alphanumeric letter before last space
-before first comma, if any."
+NAME should be a name in the format \"Last, First\" or \"First Last\",
+possibly with some braces.  Returns first alphanumeric letter before
+last space before first comma, if any."
   (let* ((first-comma (string-match "," name))
          (name (if first-comma
                    (substring name 0 first-comma)
@@ -385,7 +389,8 @@ Use first letter of each author's last name and 2-digit year."
      "]")))
 
 (defun czm-tex-fold-quotes (start end)
-  "Fold quotes in the region between START and END using overlays."
+  "Fold LaTeX quotes between START and END.
+Ignores quotes within math environments."
   (save-excursion
     (goto-char start)
     (while (re-search-forward "``\\|''" end t)
@@ -411,7 +416,7 @@ Use first letter of each author's last name and 2-digit year."
           (czm-tex-fold--create-misc-overlay quote-start quote-end str str))))))
 
 (defun czm-tex-fold-dashes (start end)
-  "Fold dashes in the region between START and END using overlays."
+  "Fold LaTeX dashes between START and END."
   (save-excursion
     (goto-char start)
     (while (re-search-forward "\\b\\(---\\)\\b" end t)
@@ -430,7 +435,7 @@ Use first letter of each author's last name and 2-digit year."
   "\\\\verb|\\([^|]*\\)|")
 
 (defun czm-tex-fold-verbs (start end)
-  "Fold `\\verb|...|' in between START and END using overlays."
+  "Fold `\\verb|...|' macros between START and END."
   (save-excursion
     (goto-char start)
     (while (re-search-forward czm-tex-fold--verb-regex end t)
