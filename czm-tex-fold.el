@@ -32,7 +32,8 @@
 ;; - \begin{theorem}[Foo] is folded as "Theorem (Foo)."
 ;;
 ;; - \label{thm:foo} is folded as "[1]", with the label number ("1" in
-;; this case) drawn from the accompanying .aux file.
+;; this case) drawn from the accompanying .aux file, courtesy of the
+;; `auctex-label-numbers' package.
 ;;
 ;; - \begin{theorem}\label{thm:foo} is folded as "Theorem [1]".
 ;;
@@ -44,12 +45,12 @@
 ;;
 ;; - \cite[Section 1]{foo} is folded as "[CN84, Section 1]", using
 ;; last name initials and 2-digit years.  The citation keys are
-;; extracted from the bib file specified by the customization variable
-;; `czm-tex-fold-bib-file' (rather than from the file being visited --
-;; indeed, this package works fine in non-file buffers).
+;; obtained via reftex or, as a backup, from the bib file specified by
+;; the customization variable `czm-tex-fold-bib-file' (so that package
+;; works also in non-file buffers).
 ;;
-;; Folding support is also provided for dashes, quotes and verbatim
-;; environments.
+;; Folding support is provided for dashes, quotes and verbatim
+;; environments via the minor mode `czm-tex-fold-misc-mode'.
 ;;
 ;; To use this package, add the following to your config:
 ;;
@@ -57,8 +58,8 @@
 ;;   (czm-tex-fold-set-defaults)
 ;;   (add-hook 'LaTeX-mode-hook #'czm-tex-fold-misc-mode))
 ;;
-;; Then use `TeX-fold-mode' as usual (restarting it if it was started
-;; after running the setup commands).  See the README for further
+;; Then, use `TeX-fold-mode' as usual, restarting it if it was started
+;; after running the setup commands.  See the README for further
 ;; information.
 
 ;;; Code:
@@ -313,9 +314,13 @@ last space before first comma, if any."
       (substring name index (1+ index)))))
 
 (defun czm-tex-fold-bibtex-abbrev ()
-  "Abbreviate the current bibtex entry.
-Use first letter of each author's last name and 2-digit year."
-  (when-let* ((entry (bibtex-parse-entry))
+  "Abbreviate the BibTeX entry at point.
+Returns a string composed of:
+- The first letter of each author's last name
+- The last two digits of the publication year
+Returns nil if either author or year information is missing."
+  (when-let* ((case-fold-search t)
+              (entry (bibtex-parse-entry))
               (author (bibtex-text-in-field "author" entry))
               (year (bibtex-text-in-field "year" entry)))
     (let* ((initials
@@ -325,8 +330,12 @@ Use first letter of each author's last name and 2-digit year."
            (year-XX (when year (substring year -2))))
       (concat initials year-XX))))
 
-(defun czm-tex-fold-cite-display (text &rest _args)
-  "Fold display for a \\cite{TEXT} macro."
+(defun czm-tex-fold--find-bib-entry (key files)
+  "Find BibTeX entry for KEY in FILES."
+  (condition-case nil
+      (reftex-pop-to-bibtex-entry key files nil nil nil t)
+    (error nil)))
+
 (defcustom czm-tex-fold-bib-file nil
   "Backup BibTeX file from which to extract citation keys.
 This is used in case for the file being visited, reftex can't find the
@@ -334,25 +343,32 @@ citation keys.  If nil, no backup is used."
   :type 'string
   :group 'czm-tex-fold)
 
+(defun czm-tex-fold--get-citation-info (key)
+  "Get citation information for KEY using RefTeX internals.
+Returns a string in the format \"AuthorYear\" or the key if not found."
+  (when-let* ((entry (or
+                      (when-let (files
+                                 (condition-case nil
+                                     (reftex-get-bibfile-list)
+                                   (error nil)))
+                        (czm-tex-fold--find-bib-entry key files))
+                      (and czm-tex-fold-bib-file
+                           (czm-tex-fold--find-bib-entry
+                            key (list czm-tex-fold-bib-file))))))
+    (with-temp-buffer
+      (insert entry)
+      (goto-char (point-min))
+      (czm-tex-fold-bibtex-abbrev))))
+
+(defun czm-tex-fold-cite-display (keys &rest _args)
+  "Generate fold display for a \\cite{KEYS} macro.
+KEYS are the citation key(s).  Uses RefTeX to look up citation
+information.  Returns a string of the form \"[AuthorYear, Optional
+Citation Text]\"."
   (let* ((citation (car (czm-tex-fold--optional-args)))
+         (key-list (split-string keys ","))
          (references
-          (mapcar (lambda (cite)
-                    (let ((trimmed-cite (string-trim cite)))
-                      (when-let* ((bib-file czm-tex-fold-bib-file)
-                                  (case-fold-search t))
-                                        ; else bibtex-parse-entry breaks
-                        (when (file-exists-p bib-file)
-                          (with-current-buffer (find-file-noselect bib-file)
-                            (save-excursion
-                              (goto-char (point-min))
-                              (if
-                                  (search-forward (concat "{" trimmed-cite ",")
-                                                  nil t)
-                                  (save-excursion
-                                    (bibtex-beginning-of-entry)
-                                    (czm-tex-fold-bibtex-abbrev))
-                                cite)))))))
-                  (split-string text ",")))
+          (mapcar #'czm-tex-fold--get-citation-info key-list))
          (joined-references (string-join references ", ")))
     (concat
      "["

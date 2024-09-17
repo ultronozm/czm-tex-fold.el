@@ -38,15 +38,20 @@ Download this repository, install using =M-x package-install-file= (or package-v
   :after latex
   :config
   (czm-tex-fold-set-defaults)
-  :custom
-  (czm-tex-fold-bib-file "~/doit/refs.bib")
-  :hook
-  (LaTeX-mode . tex-fold-mode))
-#+end_src
-Replace "~/doit/refs.bib" with the path to a .bib file containing the citations that you'd like to see folded.
-  (LaTeX-mode . czm-tex-fold-misc-mode) ; dashes, quotes, verbatim
 
-Note: I use =:demand= here so that the package is loaded before I visit any TeX buffers, but you should be sure to load AUCTeX first.
+  :hook
+  (LaTeX-mode . czm-tex-fold-misc-mode) ; dashes, quotes, verbatim
+  (LaTeX-mode . TeX-fold-mode)
+
+  ;; czm-tex-fold-bib-file is optional. By default, RefTeX is used to
+  ;; find citation keys.  Uncomment and edit the following two lines
+  ;; only if you want to specify a fallback BibTeX file when RefTeX
+  ;; can't find the keys.
+
+  ;; :custom
+  ;; (czm-tex-fold-bib-file "~/doit/refs.bib")
+  )
+#+end_src
 
 * Usage
 This package simply customizes =tex-fold.el=, so the [[https://www.gnu.org/software/auctex/manual/auctex/Folding.html][instructions]] for the latter apply here.  I typically run =TeX-fold-buffer= (=C-c C-o C-b=) once when loading a file, and =TeX-fold-clearout-buffer= (=C-c C-o b=) when I want to temporarily disable the folding.  Sometimes I also use the "section" variants (=C-c C-o C-s= and =C-c C-o s=).
