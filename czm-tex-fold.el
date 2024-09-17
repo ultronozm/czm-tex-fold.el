@@ -24,8 +24,8 @@
 ;;; Commentary:
 
 ;; This package extends AUCTeX's `TeX-fold-mode' to give improved
-;; folding of begin{...} and end{...}, references and citations.  The
-;; basic idea is illustrated as follows:
+;; folding of begin{...} and end{...}, references, citations and more.
+;; The basic idea is illustrated as follows:
 ;;
 ;; - \begin{theorem} is folded as "Theorem."
 ;;
