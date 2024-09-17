@@ -140,11 +140,11 @@
      ("minted" "minted*"))
     (("♣" . "♣")
      ("results" "results*"))
-    ((czm-tex-fold-standard-display . "□")
+    ((czm-tex-fold-format-theorem-environment . "□")
      ("proof"))
-    ((czm-tex-fold-standard-display . "◼")
+    ((czm-tex-fold-format-theorem-environment . "◼")
      ("abstract" "lemma" "lemma*" "exercise" "example" "proposition" "corollary" "remark" "definition" "theorem" "proof" "conjecture" "notation" "terminology" "fact" "note" "problem" "ass" "acknowledgment" "algorithm" "question" "questions" "assumptions" "answer" "claim" "conclusion" "criterion" "summary" "thm" "prop" "rem" "cor" "lem" "lemmy" "def" "defn" "ex" "exer" "conj" "not" "term" "prob" "ques" "ans" "conc" "crit" "sum" "commentary"))
-    ((czm-tex-fold-block-display . "◼")
+    ((czm-tex-fold-format-titled-block . "◼")
      ("block")))
   "List of specifications for `czm-tex-fold-begin-display'.
 
@@ -202,17 +202,25 @@ applies."
   :group 'czm-tex-fold
   :type '(alist :key-type (string) :value-type (string)))
 
-(defun czm-tex-fold--full-latex-env-name (env-name)
-  "Fetch the full environment name identified by ENV-NAME.
-If there is no such abbreviation, return ENV-NAME as is."
-  (or (cdr (assoc env-name czm-tex-fold--environment-abbreviations)) env-name))
+(defcustom czm-tex-fold-exclude-list
+  '("equation" "equation*" "align" "align*" "multline" "multline*")
+  "List of types to be excluded by `czm-tex-fold-helper-display'."
+  :type '(repeat string)
+  :group 'czm-tex-fold)
 
-(defun czm-tex-fold-standard-display (env &rest _args)
-  "Format fold display for tex environment \\begin{ENV}.
-Return \"Env.\" except or \"Env (Description).\" except when a
-label occurs on the same line; in that case, omit the period."
+(defun czm-tex-fold--full-environment-name (name)
+  "Fetch the full environment name identified by NAME.
+If there is no such abbreviation, return NAME as is."
+  (or (cdr (assoc name czm-tex-fold--environment-abbreviations)) name))
+
+(defun czm-tex-fold-format-theorem-environment (env &rest _args)
+  "Format fold display for theorem-like LaTeX environments.
+ENV is the environment name, ARGS are ignored.  Returns a string of the
+form \"Environment.\" or \"Environment (Description).\" If a \\label
+occurs on the same line, the trailing period is omitted.  The
+environment name is capitalized and expanded if it's an abbreviation."
   (let* ((props (text-properties-at 0 env))
-         (env-expanded (czm-tex-fold--full-latex-env-name env))
+         (env-expanded (czm-tex-fold--full-environment-name env))
          (env-uppercase (concat (upcase (substring env-expanded 0 1))
                                 (substring env-expanded 1)))
          (description (car (czm-tex-fold--optional-args)))
