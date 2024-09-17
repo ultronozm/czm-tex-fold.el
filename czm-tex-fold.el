@@ -110,6 +110,19 @@
      ("✅" ("leanok"))
      (1 ("section" "part" "chapter" "subsection" "subsubsection" "paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup" "underline")))))
 
+(defun czm-tex-fold--optional-args ()
+  "Return the optional arguments to the current macro."
+  (let ((beg (point))
+        (end (TeX-fold-item-end (point) 'macro))
+        (n 1) result)
+    (while-let ((arg (TeX-fold-macro-nth-arg
+                      n beg end '(?\[ . ?\]))))
+      (push (substring-no-properties (car arg)) result)
+      (setq n (1+ n)))
+    (nreverse result)))
+
+;;; Begin/End
+
 (defcustom czm-tex-fold-begin-default
   "↴"
   "Default fold display for a \\begin{...} macro."
@@ -154,17 +167,6 @@ applies."
                                 (function :tag "Function to execute"))
                         (repeat :tag "Types" (string))))
   :group 'czm-tex-fold)
-
-(defun czm-tex-fold--optional-args ()
-  "Return the optional arguments to the current macro."
-  (let ((beg (point))
-        (end (TeX-fold-item-end (point) 'macro))
-        (n 1) result)
-    (while-let ((arg (TeX-fold-macro-nth-arg
-                      n beg end '(?\[ . ?\]))))
-      (push (substring-no-properties (car arg)) result)
-      (setq n (1+ n)))
-    (nreverse result)))
 
 (defcustom czm-tex-fold--environment-abbreviations
   '(("thm" . "theorem")
@@ -306,6 +308,7 @@ DEFAULT is the default fold display string for the environment."
 (defun czm-tex-fold-label-display (label &rest _args)
   "Fold display for a \\label{LABEL} macro."
   (czm-tex-fold-ref-helper label "l"))
+;;; Colored text
 
 (defun czm-tex-fold-textcolor-display (color text &rest _args)
   "Fold display for a \\textcolor{COLOR}{TEXT} macro."
@@ -324,6 +327,8 @@ DEFAULT is the default fold display string for the environment."
                        'face `(:foreground "red")
                        (current-buffer))
     (buffer-string)))
+
+;;; Citations
 
 (defun czm-tex-fold--last-initial-of-name (name)
   "Return last initial of NAME.
@@ -385,6 +390,18 @@ Use first letter of each author's last name and 2-digit year."
        (format ", %s" citation))
      "]")))
 
+;;; Miscellaneous overlays
+
+(defun czm-tex-fold--create-misc-overlay (start end str spec)
+  "Create an overlay to fold quotes between START and END with STR and SPEC."
+  (let ((priority (TeX-overlay-prioritize start end))
+        (ov (make-overlay start end)))
+    (overlay-put ov 'category 'TeX-fold)
+    (overlay-put ov 'priority priority)
+    (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
+    (overlay-put ov 'display str)
+    (overlay-put ov 'TeX-fold-display-string-spec spec)))
+
 (defun czm-tex-fold-quotes (start end)
   "Fold LaTeX quotes between START and END.
 Ignores quotes within math environments."
@@ -444,15 +461,6 @@ Ignores quotes within math environments."
                       (match-string 1)))))
         (czm-tex-fold--create-misc-overlay verb-start verb-end str spec)))))
 
-(defun czm-tex-fold--create-misc-overlay (start end str spec)
-  "Create an overlay to fold quotes between START and END with STR and SPEC."
-  (let ((priority (TeX-overlay-prioritize start end))
-        (ov (make-overlay start end)))
-    (overlay-put ov 'category 'TeX-fold)
-    (overlay-put ov 'priority priority)
-    (overlay-put ov 'evaporate t) ; Remove the overlay when the text is modified.
-    (overlay-put ov 'display str)
-    (overlay-put ov 'TeX-fold-display-string-spec spec)))
 (define-minor-mode czm-tex-fold-misc-mode
   "Minor mode for folding miscellaneous LaTeX constructs.
 This includes quotes, dashes, and verbatim environments."
