@@ -101,12 +101,6 @@
      ("✅" ("leanok"))
      (1 ("section" "part" "chapter" "subsection" "subsubsection" "paragraph" "subparagraph" "part*" "chapter*" "\nsection*" "subsection*" "subsubsection*" "paragraph*" "\nsubparagraph*" "emph" "textit" "textsl" "textmd" "textrm" "textsf" "texttt" "textbf" "textsc" "textup" "underline")))))
 
-(defcustom czm-tex-fold-exclude-list
-  '("equation" "equation*" "align" "align*" "multline" "multline*")
-  "List of types to be excluded by `czm-tex-fold-helper-display'."
-  :type '(repeat string)
-  :group 'czm-tex-fold)
-
 (defun czm-tex-fold-install ()
   "Install `czm-tex-fold'."
   (interactive)
