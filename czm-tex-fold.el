@@ -281,12 +281,15 @@ ARGS is the list of {} arguments supplied to the macro."
                        (current-buffer))
     (buffer-string)))
 
+(defconst czm-tex-fold-alert-color "red"
+  "Color for alert text.")
+
 (defun czm-tex-fold-alert-display (text &rest _args)
   "Fold display for a \\alert{TEXT} macro."
   (with-temp-buffer
     (insert text)
     (put-text-property (point-min) (point-max)
-                       'face `(:foreground "red")
+                       'face `(:foreground ,czm-tex-fold-alert-color)
                        (current-buffer))
     (buffer-string)))
 
