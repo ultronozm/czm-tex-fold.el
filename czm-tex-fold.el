@@ -434,20 +434,20 @@ Ignores quotes within math environments."
         (czm-tex-fold--create-misc-overlay match-start match-end str str)))))
 
 (defvar czm-tex-fold--verb-regex
-  "\\\\verb|\\([^|]*\\)|")
+  "\\\\\\(Verb\\|verb\\)\\(?:\\[[^]]*\\]\\)?[|{]\\([^|}]*\\)[|}]")
 
 (defun czm-tex-fold-verbs (start end)
-  "Fold `\\verb|...|' macros between START and END."
+  "Fold `\\verb|...|', `\\Verb|...|', and `\\Verb{...}' macros between START and END."
   (save-excursion
     (goto-char start)
     (while (re-search-forward czm-tex-fold--verb-regex end t)
-      (let ((verb-start (match-beginning 0))
-            (verb-end (match-end 0))
-            (str (match-string 1))
-            (spec (lambda (&rest _args)
-                    (when (looking-at czm-tex-fold--verb-regex)
-                      (match-string 1)))))
-        (czm-tex-fold--create-misc-overlay verb-start verb-end str spec)))))
+      (let* ((verb-start (match-beginning 0))
+             (verb-end (match-end 0))
+             (verb-content (match-string 2))
+             (spec (lambda (&rest _args)
+                     (when (looking-at czm-tex-fold--verb-regex)
+                       (match-string 2)))))
+        (czm-tex-fold--create-misc-overlay verb-start verb-end verb-content spec)))))
 
 (define-minor-mode czm-tex-fold-misc-mode
   "Minor mode for folding miscellaneous LaTeX constructs.
