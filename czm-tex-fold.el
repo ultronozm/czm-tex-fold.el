@@ -433,21 +433,43 @@ Ignores quotes within math environments."
             (str "–"))
         (czm-tex-fold--create-misc-overlay match-start match-end str str)))))
 
-(defvar czm-tex-fold--verb-regex
-  "\\\\\\(Verb\\|verb\\)\\(?:\\[[^]]*\\]\\)?[|{]\\([^|}]*\\)[|}]")
+(defun czm-tex-fold--verb-data (&rest _args)
+  "Return data for a verbatim macro.
+Returns a list of the form (START END CONTENT)."
+  (when-let* ((boundaries (LaTeX-verbatim-macro-boundaries))
+              (bound-start (car boundaries))
+              (bound-end (cdr boundaries))
+              (end-delim-char (char-before bound-end))
+              (start-delim-char
+               (cond
+                ((eq end-delim-char ?}) ?{)
+                ((eq end-delim-char ?|) ?|)))
+              (start-delim (char-to-string start-delim-char)))
+    (goto-char (1- bound-end))
+    (when (search-backward start-delim bound-start t)
+      (let* ((verb-arg-start (1+ (point)))
+             (verb-arg-end (1- bound-end)))
+        (list
+         bound-start
+         bound-end
+         (buffer-substring verb-arg-start verb-arg-end))))))
 
 (defun czm-tex-fold-verbs (start end)
-  "Fold `\\verb|...|', `\\Verb|...|', and `\\Verb{...}' macros between START and END."
+  "Fold verbatim macros between START and END."
   (save-excursion
     (goto-char start)
-    (while (re-search-forward czm-tex-fold--verb-regex end t)
-      (let* ((verb-start (match-beginning 0))
-             (verb-end (match-end 0))
-             (verb-content (match-string 2))
-             (spec (lambda (&rest _args)
-                     (when (looking-at czm-tex-fold--verb-regex)
-                       (match-string 2)))))
-        (czm-tex-fold--create-misc-overlay verb-start verb-end verb-content spec)))))
+    (let ((re (concat "\\\\" (regexp-opt
+                              (append
+                               (LaTeX-verbatim-macros-with-braces)
+                               (LaTeX-verbatim-macros-with-delims))))))
+      (while (re-search-forward re end t)
+        (when-let* ((data (czm-tex-fold--verb-data))
+                    (verb-start (nth 0 data))
+                    (verb-end (nth 1 data))
+                    (content (nth 2 data))
+                    (spec (lambda (&rest _args)
+                            (nth 2 (czm-tex-fold--verb-data)))))
+          (czm-tex-fold--create-misc-overlay verb-start verb-end content spec))))))
 
 (define-minor-mode czm-tex-fold-misc-mode
   "Minor mode for folding miscellaneous LaTeX constructs.
