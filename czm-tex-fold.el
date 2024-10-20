@@ -119,14 +119,12 @@
 (defcustom czm-tex-fold-begin-default
   "↴"
   "Default fold display for a \\begin{...} macro."
-  :type 'string
-  :group 'czm-tex-fold)
+  :type 'string)
 
 (defcustom czm-tex-fold-end-default
   "↲"
   "Default fold display for an \\end{...} macro."
-  :type 'string
-  :group 'czm-tex-fold)
+  :type 'string)
 
 (defcustom czm-tex-fold-environment-delimiter-spec-list
   '((("🌅" . "🌇")
@@ -158,8 +156,7 @@ types (e.g., \"theorem\" or \"proof\") to which the specification
 applies."
   :type '(repeat (group (choice (string :tag "Display String")
                                 (function :tag "Function to execute"))
-                        (repeat :tag "Types" (string))))
-  :group 'czm-tex-fold)
+                        (repeat :tag "Types" (string)))))
 
 (defcustom czm-tex-fold--environment-abbreviations
   '(("thm" . "theorem")
@@ -183,14 +180,12 @@ applies."
     ("ass" . "assumption")
     ("sum" . "summary"))
   "Lookup table for LaTeX environment abbreviations."
-  :group 'czm-tex-fold
   :type '(alist :key-type (string) :value-type (string)))
 
 (defcustom czm-tex-fold-exclude-list
   '("equation" "equation*" "align" "align*" "multline" "multline*")
   "List of types to be excluded by `czm-tex-fold-helper-display'."
-  :type '(repeat string)
-  :group 'czm-tex-fold)
+  :type '(repeat string))
 
 (defun czm-tex-fold--full-environment-name (name)
   "Fetch the full environment name identified by NAME.
@@ -247,18 +242,18 @@ otherwise returns a string or function based on
                             czm-tex-fold-begin-default
                           czm-tex-fold-end-default)))
       (catch 'result
-        (dolist (spec czm-tex-fold-environment-delimiter-spec-list)
-          (let* ((display-rule (car spec))
-                 (display-string
+        (dolist (item czm-tex-fold-environment-delimiter-spec-list)
+          (let* ((display-rule (car item))
+                 (display-spec
                   (if (eq type 'begin)
                       (car display-rule)
                     (cdr display-rule)))
-                 (envs (cadr spec)))
+                 (envs (cadr item)))
             (when (member env envs)
               (throw 'result
-                     (if (functionp display-string)
-                         (funcall display-string env args)
-                       display-string)))))
+                     (if (functionp display-spec)
+                         (funcall display-spec env args)
+                       display-spec)))))
         default-fold))))
 
 (defun czm-tex-fold-begin-display (env &rest args)
@@ -297,36 +292,29 @@ ARGS is the list of {} arguments supplied to the macro."
 ;;; Citations
 
 (defun czm-tex-fold--last-initial-of-name (name)
-  "Return last initial of NAME.
+  "Return string consisting of last initial of NAME.
 NAME should be a name in the format \"Last, First\" or \"First Last\",
-possibly with some braces.  Returns first alphanumeric letter before
-last space before first comma, if any."
-  (let* ((first-comma (string-match "," name))
-         (name (if first-comma
-                   (substring name 0 first-comma)
-                 name))
-         (last-space (string-match " " name))
-         (name (if last-space
-                   (substring name last-space)
-                 name)))
-    (when-let
-        ((index (string-match "[[:alpha:]]" name)))
-      (substring name index (1+ index)))))
+possibly with some braces.  Returns string consisting of first
+alphanumeric letter before last space before first comma, if any."
+  (when-let ((comma (string-match "," name)))
+    (setq name (substring name 0 comma)))
+  (when-let ((space (string-match " " name)))
+    (setq name (substring name space)))
+  (when-let ((index (string-match "[[:alpha:]]" name)))
+    (substring name index (1+ index))))
 
 (defun czm-tex-fold-bibtex-abbrev ()
   "Abbreviate the BibTeX entry at point.
-Returns a string composed of:
-- The first letter of each author's last name
-- The last two digits of the publication year
-Returns nil if either author or year information is missing."
+Return string of the form \"XYZ99\" consisting of initials of authors'
+last names and the last two digits of the publication year, nil if
+author or year not found."
   (when-let* ((case-fold-search t)
               (entry (bibtex-parse-entry))
               (author (bibtex-text-in-field "author" entry))
               (year (bibtex-text-in-field "year" entry)))
-    (let* ((initials
-            (mapconcat
-             #'czm-tex-fold--last-initial-of-name
-             (string-split author " and ")))
+    (let* ((initials (mapconcat
+                      #'czm-tex-fold--last-initial-of-name
+                      (string-split author " and ")))
            (year-XX (when year (substring year -2))))
       (concat initials year-XX))))
 
@@ -340,21 +328,21 @@ Returns nil if either author or year information is missing."
   "Backup BibTeX file from which to extract citation keys.
 This is used in case for the file being visited, reftex can't find the
 citation keys.  If nil, no backup is used."
-  :type 'string
-  :group 'czm-tex-fold)
+  :type 'string)
 
 (defun czm-tex-fold--get-citation-info (key)
   "Get citation information for KEY using RefTeX internals.
-Returns a string in the format \"AuthorYear\" or the key if not found."
-  (when-let* ((entry (or
-                      (when-let (files
-                                 (condition-case nil
-                                     (reftex-get-bibfile-list)
-                                   (error nil)))
-                        (czm-tex-fold--find-bib-entry key files))
-                      (and czm-tex-fold-bib-file
-                           (czm-tex-fold--find-bib-entry
-                            key (list czm-tex-fold-bib-file))))))
+Search using both reftex and `czm-tex-fold-bib-file'.  Return string of
+the form \"XYZ99\" (see the docs of `czm-tex-fold-bibtex-abbrev') or the
+key if not found."
+  (when-let* ((entry (or (when-let (files
+                                    (condition-case nil
+                                        (reftex-get-bibfile-list)
+                                      (error nil)))
+                           (czm-tex-fold--find-bib-entry key files))
+                         (and czm-tex-fold-bib-file
+                              (czm-tex-fold--find-bib-entry
+                               key (list czm-tex-fold-bib-file))))))
     (with-temp-buffer
       (insert entry)
       (goto-char (point-min))
@@ -362,21 +350,21 @@ Returns a string in the format \"AuthorYear\" or the key if not found."
 
 (defun czm-tex-fold-cite-display (keys &rest _args)
   "Generate fold display for a \\cite{KEYS} macro.
-KEYS are the citation key(s).  Uses RefTeX to look up citation
-information.  Returns a string of the form \"[AuthorYear, Optional
-Citation Text]\"."
+KEYS are the citation key(s), as a comma-delimited list.  Uses RefTeX to
+look up citation information.  Returns a string of the form \"[XYZ99]\"
+or \"[XYZ99, Optional Citation Text]\"."
   (let* ((citation (car (czm-tex-fold--optional-args)))
          (key-list (split-string keys ","))
          (references
           (mapcar #'czm-tex-fold--get-citation-info key-list))
          (joined-references (string-join references ", ")))
-    (concat
-     "["
-     (if (string-empty-p joined-references)
-         "c" joined-references)
-     (when citation
-       (format ", %s" citation))
-     "]")))
+    (concat "["
+            (if (string-empty-p joined-references)
+                "c" joined-references)
+            (when citation
+              (format ", %s" citation))
+            "]")))
+
 
 ;;; Miscellaneous overlays
 
@@ -476,7 +464,6 @@ Returns a list of the form (START END CONTENT)."
   "Minor mode for folding miscellaneous LaTeX constructs.
 This includes quotes, dashes, and verbatim environments."
   :lighter nil
-  :group 'czm-tex-fold
   (if czm-tex-fold-misc-mode
       (progn
         (add-hook 'TeX-fold-region-functions #'czm-tex-fold-quotes nil t)
